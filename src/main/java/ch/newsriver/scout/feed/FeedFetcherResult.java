@@ -1,5 +1,7 @@
 package ch.newsriver.scout.feed;
 
+import ch.newsriver.data.url.FeedURL;
+
 import java.util.List;
 
 /**
