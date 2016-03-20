@@ -39,9 +39,9 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
     private static final Logger logger = LogManager.getLogger(Scout.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private static final int BATCH_SIZE = 50;
-    private static final int POOL_SIZE  = 50;
-    private static final int QUEUE_SIZE = 50;
+    private static final int BATCH_SIZE = 10;
+    private static final int POOL_SIZE  = 10;
+    private static final int QUEUE_SIZE = 10;
     private boolean run = false;
     Producer<String, String> producer;
 
@@ -81,16 +81,38 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
 
     public void run(){
 
+        int count = 0;
+        String sqlCount = "Select count(url) from feed";
+        try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sqlCount);) {
+            try (ResultSet rs = stmt.executeQuery();) {
+                if (rs.next()) {
+                    count = rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        int from = 0;
         while (run) {
 
             try {
 
+                //TODO:remove this
+                Thread.sleep(5000);
+
                 this.waitFreeBatchExecutors(BATCH_SIZE);
 
                 List<String> urls = new LinkedList();
-                String sql = "Select url from feed limit ?";
+                String sql = "Select url from feed limit ?,?";
                 try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sql);) {
-                    stmt.setInt(1, BATCH_SIZE);
+                    stmt.setInt(1, from);
+                    stmt.setInt(2, BATCH_SIZE);
+
+                    from += BATCH_SIZE;
+                    from = from>count?0:from;
+
                     try (ResultSet rs = stmt.executeQuery();) {
                         while (rs.next()) {
                             urls.add(rs.getString("url"));

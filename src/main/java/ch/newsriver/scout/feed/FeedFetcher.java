@@ -27,6 +27,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -44,7 +49,7 @@ public class FeedFetcher{
     private static final HttpClientPoolFeedFetcher clientFeedFetcher = new HttpClientPoolFeedFetcher();
 
     private static final Random rand = new Random();
-
+    private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
     private static final int MAX_ARTICLES_PER_FETCH = 10;
 
 
@@ -90,11 +95,11 @@ public class FeedFetcher{
             SyndEntry entry = (SyndEntry) entryObject;
 
             //Note that we are not cheking the normalised link but the raw one instead
-            //this to allow multiple referals in case the same article is linked with
+            //this to allow multiple referals in case the same Article is linked with
             //two different urls;
-            //if(VisitedURLs.getInstance().isVisited(feedURL,entry.getLink())){
-            //    continue;
-            //}
+            if(VisitedURLs.getInstance().isVisited(feedURL,entry.getLink())){
+                continue;
+            }
             VisitedURLs.getInstance().setVisited(feedURL,entry.getLink());
 
             FeedURL url = getFeedUrl(entry, feedURL);
@@ -131,9 +136,9 @@ public class FeedFetcher{
 
         feedURL.setReferral(referal);
         feedURL.setNormalizeURL(cleanLink);
-        feedURL.setDiscoveryDate(new Date().getTime());
+        feedURL.setDiscoverDate(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(ZonedDateTime.now()));
         if (feedEntry.getPublishedDate() != null) {
-            feedURL.setPublicationDate(feedEntry.getPublishedDate().getTime());
+            feedURL.setPublicationDate(simpleDateFormat.format(feedEntry.getPublishedDate()));
         }
 
         feedURL.setTitle(TextNormaliser.caseNormalizer(feedEntry.getTitle()));

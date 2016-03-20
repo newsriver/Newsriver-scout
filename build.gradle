@@ -3,6 +3,7 @@
 
 apply plugin: 'java'
 apply plugin: 'application'
+apply plugin: 'docker'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -21,6 +22,15 @@ processResources {
 
     filesMatching('**/version.properties') {expand projectVersion: project.version}
 
+}
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'se.transmode.gradle:gradle-docker:1.2'
+    }
 }
 
 dependencies {
@@ -49,3 +59,15 @@ task fatJar(type: Jar) {
     with jar
 }
 
+
+docker {
+    registry = '46.4.71.105:5000'
+
+}
+
+task buildimage(type: Docker) {
+    dependsOn fatJar
+    tagVersion = '0.1'
+    applicationName = 'newsriver-scout'
+    dockerfile = project.file('Dockerfile')
+}
