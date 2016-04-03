@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.util.Supplier;
 import org.jsoup.Jsoup;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,7 +39,7 @@ import java.util.concurrent.Callable;
 /**
  * Created by eliapalme on 11/03/16.
  */
-public class FeedFetcher{
+public class FeedFetcher {
 
 
     private static final Logger logger = LogManager.getLogger(FeedFetcher.class);
@@ -53,8 +54,9 @@ public class FeedFetcher{
     private static final int MAX_ARTICLES_PER_FETCH = 10;
 
 
-    private  String feedURL;
-    public FeedFetcher(String url){
+    private String feedURL;
+
+    public FeedFetcher(String url) {
         feedURL = url;
     }
 
@@ -63,12 +65,11 @@ public class FeedFetcher{
         FeedFetcherResult result = null;
         try {
             return FeedFetcher.fetchUrls(feedURL, MAX_ARTICLES_PER_FETCH);
-        }catch (Throwable e){
+        } catch (Throwable e) {
             logger.error(e);
             return null;
         }
     }
-
 
 
     public static FeedURL fetchRandomLink(String feedURL) throws MalformedURLException, IllegalArgumentException, IOException, FeedException, FetcherException {
@@ -92,31 +93,31 @@ public class FeedFetcher{
         SyndFeed feed = clientFeedFetcher.retrieveFeed(new URL(feedURL));
         int remainingArticles = 0;
         for (Object entryObject : feed.getEntries()) {
-            SyndEntry entry = (SyndEntry) entryObject;
+            if (limit > 0) {
+                SyndEntry entry = (SyndEntry) entryObject;
+                FeedURL url = getFeedUrl(entry, feedURL);
+                if (url != null) {
 
-            //Note that we are not cheking the normalised link but the raw one instead
-            //this to allow multiple referals in case the same Article is linked with
-            //two different urls;
-            if(VisitedURLs.getInstance().isVisited(feedURL,entry.getLink())){
-                continue;
-            }
-            VisitedURLs.getInstance().setVisited(feedURL,entry.getLink());
+                    //Note that we are cheking the normalised link version but NOT the resolved one
+                    //this to allow multiple referals in case the same Article is linked with
+                    //two different urls;
+                    if (VisitedURLs.getInstance().isVisited(feedURL, url.getUlr())) {
+                        continue;
+                    }
+                    VisitedURLs.getInstance().setVisited(feedURL, url.getUlr());
 
-            FeedURL url = getFeedUrl(entry, feedURL);
-            if (url != null) {
-                if (limit > 0) {
                     urls.add(url);
                     limit--;
-                } else {
-                    remainingArticles++;
                 }
+            } else {
+                remainingArticles++;
             }
         }
         return new FeedFetcherResult(urls, remainingArticles, feed.getEntries().size());
     }
 
 
-    private static FeedURL getFeedUrl(SyndEntry feedEntry, String referal) {
+    private static FeedURL getFeedUrl(SyndEntry feedEntry, String referalURL) {
         FeedURL feedURL = new FeedURL();
 
         if (feedEntry.getLink() == null) {
@@ -134,8 +135,8 @@ public class FeedFetcher{
         }
 
 
-        feedURL.setReferral(referal);
-        feedURL.setNormalizeURL(cleanLink);
+        feedURL.setReferralURL(referalURL);
+        feedURL.setUlr(cleanLink);
         feedURL.setDiscoverDate(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(ZonedDateTime.now()));
         if (feedEntry.getPublishedDate() != null) {
             feedURL.setPublicationDate(simpleDateFormat.format(feedEntry.getPublishedDate()));
@@ -158,13 +159,12 @@ public class FeedFetcher{
                 }
             }
         }
-        if(abstractText!=null && !abstractText.isEmpty()) {
+        if (abstractText != null && !abstractText.isEmpty()) {
             feedURL.setHeadlines(TextNormaliser.cleanText(abstractText));
         }
 
         return feedURL;
     }
-
 
 
 }
