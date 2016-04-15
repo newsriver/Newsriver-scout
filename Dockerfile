@@ -1,7 +1,7 @@
 FROM alpine:3.3
 RUN apk --update add openjdk8-jre
 VOLUME ["/root/DISCO_Dictionaries/"]
-COPY build/libs/Newsriver-scout-0.1.jar /home/Newsriver-scout.jar
+COPY Newsriver-scout-*.jar /home/Newsriver-scout.jar
 WORKDIR /home
 EXPOSE 31000-32000
 ENV PORT 31111

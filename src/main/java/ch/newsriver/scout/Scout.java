@@ -1,18 +1,16 @@
 package ch.newsriver.scout;
 
 import ch.newsriver.dao.JDBCPoolUtil;
-import ch.newsriver.data.url.BaseURL;
 import ch.newsriver.data.url.FeedURL;
-import ch.newsriver.executable.BatchInterruptibleWithinExecutorPool;
-import ch.newsriver.executable.InterruptibleWithinExecutorPool;
+import ch.newsriver.executable.Main;
+import ch.newsriver.executable.poolExecution.BatchInterruptibleWithinExecutorPool;
+import ch.newsriver.performance.MetricsLogger;
 import ch.newsriver.scout.feed.FeedFetcher;
 import ch.newsriver.scout.feed.FeedFetcherResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.errors.InterruptException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,8 +26,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Created by eliapalme on 10/03/16.
@@ -37,18 +33,19 @@ import java.util.function.Supplier;
 public class Scout extends BatchInterruptibleWithinExecutorPool implements Runnable {
 
     private static final Logger logger = LogManager.getLogger(Scout.class);
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final MetricsLogger metrics = MetricsLogger.getLogger(Scout.class, Main.getInstance().getInstanceName());
 
-    private static final int BATCH_SIZE = 10;
-    private static final int POOL_SIZE  = 10;
-    private static final int QUEUE_SIZE = 10;
+    private static int  MAX_EXECUTUION_DURATION = 120;
+
+    private static final ObjectMapper mapper = new ObjectMapper();
+    private int batchSize;
     private boolean run = false;
     Producer<String, String> producer;
 
-    public Scout() throws IOException {
-        super(POOL_SIZE,QUEUE_SIZE);
+    public Scout(int poolSize, int batchSize, int queueSize) throws IOException {
+        super(poolSize,queueSize,Duration.ofSeconds(MAX_EXECUTUION_DURATION));
         run = true;
-
+        this.batchSize =batchSize;
         Properties props = new Properties();
         InputStream inputStream = null;
         try {
@@ -76,11 +73,12 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
         run = false;
         this.shutdown();
         producer.close();
+        metrics.logMetric("shutdown");
     }
 
 
     public void run(){
-
+        metrics.logMetric("start");
         int count = 0;
         String sqlCount = "Select count(url) from feed";
         try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sqlCount);) {
@@ -98,19 +96,16 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
         while (run) {
 
             try {
-
-                //TODO:remove this
-                Thread.sleep(5000);
-
-                this.waitFreeBatchExecutors(BATCH_SIZE);
+                this.waitFreeBatchExecutors(this.batchSize);
+                metrics.logMetric("processing batch");
 
                 List<String> urls = new LinkedList();
                 String sql = "Select url from feed limit ?,?";
                 try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sql);) {
                     stmt.setInt(1, from);
-                    stmt.setInt(2, BATCH_SIZE);
+                    stmt.setInt(2, this.batchSize);
 
-                    from += BATCH_SIZE;
+                    from += this.batchSize;
                     from = from>count?0:from;
 
                     try (ResultSet rs = stmt.executeQuery();) {
@@ -123,19 +118,21 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
                 }
 
                 for (String url : urls) {
-                    CompletableFuture x =supplyAsyncInterruptWithin(() ->
+                    metrics.logMetric("processing feed");
+                    CompletableFuture x = supplyAsyncInterruptExecutionWithin(() ->
                     {
                         FeedFetcher fetcher =  new FeedFetcher(url);
                         FeedFetcherResult result = fetcher.fetch();
                         ScoutMain.addMetric("Scanned Feeds",1);
                         return  result;
-                    },Duration.ofSeconds(60),this)
+                    },this)
                             .thenAcceptAsync(result -> {
                                         if(result!=null) {
                                             for (FeedURL feedURL : result.getUrls()) {
                                                 try {
                                                     String json = mapper.writeValueAsString(feedURL);
-                                                    producer.send(new ProducerRecord<String, String>("raw-urls", feedURL.getNormalizeURL(), json));
+                                                    producer.send(new ProducerRecord<String, String>("raw-urls", feedURL.getUlr(), json));
+                                                    metrics.logMetric("submitted url");
                                                     ScoutMain.addMetric("Submitted URLs",1);
                                                 } catch (Exception e) {
                                                     logger.fatal("Unable to serialize scout result", e);
