@@ -29,9 +29,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -44,6 +42,7 @@ public class FeedFetcher {
 
     private static final Logger logger = LogManager.getLogger(FeedFetcher.class);
 
+
     private static final int READ_TIMEOUT = 60000;
     private static final int CONNECTION_TIMEOUT = 60000;
     //Please not that HttpClientFeedFetcher is using the old httpclient 3.0 therefore we added common-http legacy jar file
@@ -51,7 +50,10 @@ public class FeedFetcher {
 
     private static final Random rand = new Random();
     private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-    private static final int MAX_ARTICLES_PER_FETCH = 10;
+    private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+
+    //Some feeds do generate links dinamically like the google ones
+    private static final int MAX_ARTICLES_PER_FETCH = 50;
 
 
     private String feedURL;
@@ -98,6 +100,7 @@ public class FeedFetcher {
                 FeedURL url = getFeedUrl(entry, feedURL);
                 if (url != null) {
 
+                    //TODO:
                     //Note that we are cheking the normalised link version but NOT the resolved one
                     //this to allow multiple referals in case the same Article is linked with
                     //two different urls;
@@ -115,6 +118,7 @@ public class FeedFetcher {
         }
         return new FeedFetcherResult(urls, remainingArticles, feed.getEntries().size());
     }
+
 
 
     private static FeedURL getFeedUrl(SyndEntry feedEntry, String referalURL) {
@@ -137,7 +141,7 @@ public class FeedFetcher {
 
         feedURL.setReferralURL(referalURL);
         feedURL.setUlr(cleanLink);
-        feedURL.setDiscoverDate(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(ZonedDateTime.now()));
+        feedURL.setDiscoverDate(dateFormatter.format(new Date()));
         if (feedEntry.getPublishedDate() != null) {
             feedURL.setPublicationDate(simpleDateFormat.format(feedEntry.getPublishedDate()));
         }

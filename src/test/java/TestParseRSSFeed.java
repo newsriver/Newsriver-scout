@@ -54,7 +54,7 @@ public class TestParseRSSFeed {
     public void parseGoogleFeed() throws Exception {
 
         //String url = "https://news.google.com/news/section?q=+Rock+Climbing&output=rss";
-        String url = "https://www.google.com/alerts/feeds/08403177152869353340/8406544804626500550";
+        String url = "https://news.google.com/news/section?q=Rafting&output=rss&num=100";
 
         FeedFetcher fetcher = new FeedFetcher(url);
         FeedFetcherResult result = fetcher.fetch();

@@ -1,12 +1,17 @@
 package ch.newsriver.scout;
 
 import ch.newsriver.dao.JDBCPoolUtil;
+import ch.newsriver.data.url.BaseURL;
 import ch.newsriver.data.url.FeedURL;
+import ch.newsriver.data.url.SourceRSSURL;
 import ch.newsriver.executable.Main;
 import ch.newsriver.executable.poolExecution.BatchInterruptibleWithinExecutorPool;
 import ch.newsriver.performance.MetricsLogger;
+import ch.newsriver.scout.cache.ResolvedURLs;
+import ch.newsriver.scout.cache.VisitedURLs;
 import ch.newsriver.scout.feed.FeedFetcher;
 import ch.newsriver.scout.feed.FeedFetcherResult;
+import ch.newsriver.scout.url.URLResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -21,7 +26,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -34,6 +41,7 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
 
     private static final Logger logger = LogManager.getLogger(Scout.class);
     private static final MetricsLogger metrics = MetricsLogger.getLogger(Scout.class, Main.getInstance().getInstanceName());
+    private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
     private static int  MAX_EXECUTUION_DURATION = 120;
 
@@ -73,12 +81,12 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
         run = false;
         this.shutdown();
         producer.close();
-        metrics.logMetric("shutdown");
+        metrics.logMetric("shutdown",null);
     }
 
 
     public void run(){
-        metrics.logMetric("start");
+        metrics.logMetric("start",null);
         int count = 0;
         String sqlCount = "Select count(url) from feed";
         try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sqlCount);) {
@@ -97,7 +105,8 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
 
             try {
                 this.waitFreeBatchExecutors(this.batchSize);
-                metrics.logMetric("processing batch");
+                //TODO: decide if we should keep this
+                //metrics.logMetric("processing batch",null);
 
                 List<String> urls = new LinkedList();
                 String sql = "Select url from feed limit ?,?";
@@ -118,33 +127,54 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
                 }
 
                 for (String url : urls) {
-                    metrics.logMetric("processing feed");
                     CompletableFuture x = supplyAsyncInterruptExecutionWithin(() ->
                     {
+                        SourceRSSURL source = new SourceRSSURL();
+                        source.setUlr(url);
+                        source.setDiscoverDate(dateFormatter.format(new Date()));
+                        metrics.logMetric("processing feed", source);
+
                         FeedFetcher fetcher =  new FeedFetcher(url);
                         FeedFetcherResult result = fetcher.fetch();
                         ScoutMain.addMetric("Scanned Feeds",1);
-                        return  result;
-                    },this)
-                            .thenAcceptAsync(result -> {
-                                        if(result!=null) {
-                                            for (FeedURL feedURL : result.getUrls()) {
-                                                try {
-                                                    String json = mapper.writeValueAsString(feedURL);
-                                                    producer.send(new ProducerRecord<String, String>("raw-urls", feedURL.getUlr(), json));
-                                                    metrics.logMetric("submitted url");
-                                                    ScoutMain.addMetric("Submitted URLs",1);
-                                                } catch (Exception e) {
-                                                    logger.fatal("Unable to serialize scout result", e);
-                                                }
-                                            }
-                                        }
+
+                        if(result!=null) {
+                            for (FeedURL feedURL : result.getUrls()) {
+
+                                String resolvedURL = ResolvedURLs.getInstance().getResolved(feedURL.getUlr());
+                                if (resolvedURL == null) {
+                                    try {
+                                        resolvedURL = URLResolver.getInstance().resolveURL(feedURL.getUlr());
+                                    } catch (URLResolver.InvalidURLException e) {
+                                        logger.error("Unable to resolve URL", e);
+                                        return null;
                                     }
-                                    , this)
-                            .exceptionally(throwable -> {
+                                    ResolvedURLs.getInstance().setResolved(feedURL.getUlr(), resolvedURL);
+                                }
+                                feedURL.setUlr(resolvedURL);
+
+                                //Skip articles that have been previously visited.
+                                if (VisitedURLs.getInstance().isVisited(url, feedURL.getUlr())) {
+                                    continue;
+                                }
+                                VisitedURLs.getInstance().setVisited(url, feedURL.getUlr());
+
+                                try {
+                                    String json = mapper.writeValueAsString(feedURL);
+                                    producer.send(new ProducerRecord<String, String>("raw-urls", feedURL.getUlr(), json));
+                                    metrics.logMetric("submitted url",feedURL);
+                                    ScoutMain.addMetric("Submitted URLs",1);
+                                } catch (Exception e) {
+                                    logger.fatal("Unable to serialize scout result", e);
+                                }
+                            }
+                        }
+
+                        return  result;
+                    },this).exceptionally(throwable -> {
                                 logger.error("FeedFetcher unrecoverable error.", throwable);
                                 return null;
-                            });
+                    });
                 }
 
 
