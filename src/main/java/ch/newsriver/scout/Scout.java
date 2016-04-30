@@ -1,6 +1,8 @@
 package ch.newsriver.scout;
 
 import ch.newsriver.dao.JDBCPoolUtil;
+import ch.newsriver.data.source.BaseSource;
+import ch.newsriver.data.source.SourceFactory;
 import ch.newsriver.data.url.BaseURL;
 import ch.newsriver.data.url.FeedURL;
 import ch.newsriver.data.url.SourceRSSURL;
@@ -28,10 +30,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -87,20 +86,8 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
 
     public void run(){
         metrics.logMetric("start",null);
-        int count = 0;
-        String sqlCount = "Select count(url) from feed";
-        try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sqlCount);) {
-            try (ResultSet rs = stmt.executeQuery();) {
-                if (rs.next()) {
-                    count = rs.getInt(1);
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
 
 
-        int from = 0;
         while (run) {
 
             try {
@@ -108,56 +95,27 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
                 //TODO: decide if we should keep this
                 //metrics.logMetric("processing batch",null);
 
-                List<String> urls = new LinkedList();
-                String sql = "Select url from feed limit ?,?";
-                try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sql);) {
-                    stmt.setInt(1, from);
-                    stmt.setInt(2, this.batchSize);
+                Set<String> sourceIds = SourceFactory.getInstance().nextToVisits(100);
 
-                    from += this.batchSize;
-                    from = from>count?0:from;
+                for (String id : sourceIds) {
 
-                    try (ResultSet rs = stmt.executeQuery();) {
-                        while (rs.next()) {
-                            urls.add(rs.getString("url"));
-                        }
-                    }
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-
-                for (String url : urls) {
                     CompletableFuture x = supplyAsyncInterruptExecutionWithin(() ->
                     {
-                        SourceRSSURL source = new SourceRSSURL();
-                        source.setUlr(url);
-                        source.setDiscoverDate(dateFormatter.format(new Date()));
-                        metrics.logMetric("processing feed", source);
 
-                        FeedFetcher fetcher =  new FeedFetcher(url);
+                        BaseSource source = SourceFactory.getInstance().getSource(id);
+                        SourceFactory.getInstance().updateLastVisit(id);
+
+                        SourceRSSURL processingSource = new SourceRSSURL();
+                        processingSource.setUlr(source.getUrl());
+                        processingSource.setDiscoverDate(dateFormatter.format(new Date()));
+                        metrics.logMetric("processing feed", processingSource);
+
+                        FeedFetcher fetcher =  new FeedFetcher(source.getUrl());
                         FeedFetcherResult result = fetcher.fetch();
                         ScoutMain.addMetric("Scanned Feeds",1);
 
                         if(result!=null) {
                             for (FeedURL feedURL : result.getUrls()) {
-
-                                String resolvedURL = ResolvedURLs.getInstance().getResolved(feedURL.getUlr());
-                                if (resolvedURL == null) {
-                                    try {
-                                        resolvedURL = URLResolver.getInstance().resolveURL(feedURL.getUlr());
-                                    } catch (URLResolver.InvalidURLException e) {
-                                        logger.error("Unable to resolve URL", e);
-                                        return null;
-                                    }
-                                    ResolvedURLs.getInstance().setResolved(feedURL.getUlr(), resolvedURL);
-                                }
-                                feedURL.setUlr(resolvedURL);
-
-                                //Skip articles that have been previously visited.
-                                if (VisitedURLs.getInstance().isVisited(url, feedURL.getUlr())) {
-                                    continue;
-                                }
-                                VisitedURLs.getInstance().setVisited(url, feedURL.getUlr());
 
                                 try {
                                     String json = mapper.writeValueAsString(feedURL);

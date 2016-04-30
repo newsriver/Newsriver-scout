@@ -1,6 +1,10 @@
 import ch.newsriver.data.url.FeedURL;
+import ch.newsriver.scout.ScoutMain;
+import ch.newsriver.scout.cache.ResolvedURLs;
+import ch.newsriver.scout.cache.VisitedURLs;
 import ch.newsriver.scout.feed.FeedFetcher;
 import ch.newsriver.scout.feed.FeedFetcherResult;
+import ch.newsriver.scout.url.URLResolver;
 import ch.newsriver.util.http.HttpClientPool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -13,9 +17,7 @@ import org.junit.Test;
 import java.io.InputStream;
 import java.util.Properties;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * Created by eliapalme on 08/04/16.
@@ -54,7 +56,9 @@ public class TestParseRSSFeed {
     public void parseGoogleFeed() throws Exception {
 
         //String url = "https://news.google.com/news/section?q=+Rock+Climbing&output=rss";
-        String url = "https://news.google.com/news/section?q=Rafting&output=rss&num=100";
+        //String url = "https://news.google.com/news/section?q=Rafting&output=rss&num=100";
+        String url = "https://www.redbulletin.com/ch/de/rss.xml";
+
 
         FeedFetcher fetcher = new FeedFetcher(url);
         FeedFetcherResult result = fetcher.fetch();
@@ -69,8 +73,28 @@ public class TestParseRSSFeed {
             assertFalse(feedURL.getRawURL().isEmpty());
             assertFalse(feedURL.getReferralURL().isEmpty());
 
-            String json = mapper.writeValueAsString(feedURL);
-            producer.send(new ProducerRecord<String, String>("raw-urls", feedURL.getUlr(), json));
+
+            String resolvedURL = ResolvedURLs.getInstance().getResolved(feedURL.getUlr());
+            if (resolvedURL == null) {
+                try {
+                    resolvedURL = URLResolver.getInstance().resolveURL(feedURL.getUlr());
+                } catch (URLResolver.InvalidURLException e) {
+                    assertNull(e);
+                }
+                ResolvedURLs.getInstance().setResolved(feedURL.getUlr(), resolvedURL);
+            }
+            feedURL.setUlr(resolvedURL);
+
+            try {
+                String json = mapper.writeValueAsString(feedURL);
+                producer.send(new ProducerRecord<String, String>("raw-urls", feedURL.getUlr(), json));
+                ScoutMain.addMetric("Submitted URLs", 1);
+            } catch (Exception e) {
+                assertNull(e);
+            }
+
+            //String json = mapper.writeValueAsString(feedURL);
+            //producer.send(new ProducerRecord<String, String>("raw-urls", feedURL.getUlr(), json));
 
         }
 

@@ -3,7 +3,9 @@ package ch.newsriver.scout.feed;
 
 import ch.newsriver.data.url.BaseURL;
 import ch.newsriver.data.url.FeedURL;
+import ch.newsriver.scout.cache.ResolvedURLs;
 import ch.newsriver.scout.cache.VisitedURLs;
+import ch.newsriver.scout.url.URLResolver;
 import ch.newsriver.util.normalization.text.TextNormaliser;
 import ch.newsriver.util.normalization.url.URLUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -100,14 +102,39 @@ public class FeedFetcher {
                 FeedURL url = getFeedUrl(entry, feedURL);
                 if (url != null) {
 
-                    //TODO:
-                    //Note that we are cheking the normalised link version but NOT the resolved one
-                    //this to allow multiple referals in case the same Article is linked with
-                    //two different urls;
+                    //First check if the normalised url but NOT resolved url has been visited
                     if (VisitedURLs.getInstance().isVisited(feedURL, url.getUlr())) {
                         continue;
                     }
+
+                    String resolvedURL = ResolvedURLs.getInstance().getResolved(url.getUlr());
+                    if (resolvedURL == null) {
+                        try {
+                            resolvedURL = URLResolver.getInstance().resolveURL(url.getUlr());
+                        } catch (URLResolver.InvalidURLException e) {
+                            logger.error("Unable to resolve URL", e);
+                            continue;
+                        }
+                        ResolvedURLs.getInstance().setResolved(url.getUlr(), resolvedURL);
+                    }
+
+                    //Check if the resolved url has been visited
+                    //This is usefull for cases like google that is change the URL of the feeds at avery crawl
+                    if (VisitedURLs.getInstance().isVisited(feedURL, resolvedURL)) {
+                        continue;
+                    }
+
+                    //Only set as visited after checking both normalised and resolved
+                    //Otherview if the normalised url is equal to the resolved it gets skipped by mistake
+
+                    //set as visited the normalised url
                     VisitedURLs.getInstance().setVisited(feedURL, url.getUlr());
+                    //set as visited the resolved url if different from the normalised one
+                    if(!resolvedURL.equals(url.getUlr())) {
+                        VisitedURLs.getInstance().setVisited(feedURL, resolvedURL);
+                    }
+
+                    url.setUlr(resolvedURL);
 
                     urls.add(url);
                     limit--;
