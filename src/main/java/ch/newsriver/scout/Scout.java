@@ -95,7 +95,7 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
                 //TODO: decide if we should keep this
                 //metrics.logMetric("processing batch",null);
 
-                Set<String> sourceIds = SourceFactory.getInstance().nextToVisits(100);
+                Set<String> sourceIds = SourceFactory.getInstance().nextToVisits();
 
                 for (String id : sourceIds) {
 
