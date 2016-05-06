@@ -116,7 +116,6 @@ public class Scout extends BatchInterruptibleWithinExecutorPool implements Runna
 
                         if(result!=null) {
                             for (FeedURL feedURL : result.getUrls()) {
-
                                 try {
                                     String json = mapper.writeValueAsString(feedURL);
                                     producer.send(new ProducerRecord<String, String>("raw-urls", feedURL.getUlr(), json));

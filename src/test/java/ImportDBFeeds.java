@@ -30,7 +30,7 @@ public class ImportDBFeeds {
     @Test
     public void importDBFeeds() throws Exception {
 
-
+    /*
         List<String> urls = new LinkedList();
         String sql = "SELECT url,C.name as category,P.name as region,K.ISOCode as country, L.name as language FROM NewscronConfiguration.feed AS F\n" +
                 "LEFT JOIN NewscronConfiguration.category AS C ON C.id=F.categoryID\n" +
@@ -97,6 +97,7 @@ public class ImportDBFeeds {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+        */
     }
 
 

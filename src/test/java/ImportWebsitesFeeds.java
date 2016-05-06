@@ -45,7 +45,7 @@ public class ImportWebsitesFeeds {
     public void importWebSiteFeeds() throws Exception {
 
 
-
+        /*
 
 
         Client client = null;
@@ -116,6 +116,8 @@ public class ImportWebsitesFeeds {
             source.setLastVisit(dateFormatter.format(new Date()));
             SourceFactory.getInstance().setSource(source,false);
         });
+
+        */
 
     }
 

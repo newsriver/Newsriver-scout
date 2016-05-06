@@ -30,7 +30,7 @@ public class ResetVisitedDate {
     @Test
     public void resetVisitedDate() throws Exception {
 
-
+        /*
 
 
         Client client = null;
@@ -69,7 +69,7 @@ public class ResetVisitedDate {
         }
 
 
-
+        */
 
 
     }

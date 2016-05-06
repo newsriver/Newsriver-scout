@@ -55,6 +55,7 @@ public class TestParseRSSFeed {
     @Test
     public void parseGoogleFeed() throws Exception {
 
+         /*
         //String url = "https://news.google.com/news/section?q=+Rock+Climbing&output=rss";
         //String url = "https://news.google.com/news/section?q=Rafting&output=rss&num=100";
         String url = "https://www.redbulletin.com/ch/de/rss.xml";
@@ -97,7 +98,7 @@ public class TestParseRSSFeed {
             //producer.send(new ProducerRecord<String, String>("raw-urls", feedURL.getUlr(), json));
 
         }
-
+        */
 
     }
 
