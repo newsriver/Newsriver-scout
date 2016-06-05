@@ -103,19 +103,19 @@ public class FeedFetcher {
                 if (url != null) {
 
                     //First check if the normalised url but NOT resolved url has been visited
-                    if (VisitedURLs.getInstance().isVisited(feedURL, url.getUlr())) {
+                    if (VisitedURLs.getInstance().isVisited(feedURL, url.getUrl())) {
                         continue;
                     }
 
-                    String resolvedURL = ResolvedURLs.getInstance().getResolved(url.getUlr());
+                    String resolvedURL = ResolvedURLs.getInstance().getResolved(url.getUrl());
                     if (resolvedURL == null) {
                         try {
-                            resolvedURL = URLResolver.getInstance().resolveURL(url.getUlr());
+                            resolvedURL = URLResolver.getInstance().resolveURL(url.getUrl());
                         } catch (URLResolver.InvalidURLException e) {
                             logger.error("Unable to resolve URL", e);
                             continue;
                         }
-                        ResolvedURLs.getInstance().setResolved(url.getUlr(), resolvedURL);
+                        ResolvedURLs.getInstance().setResolved(url.getUrl(), resolvedURL);
                     }
 
                     //Check if the resolved url has been visited
@@ -128,13 +128,13 @@ public class FeedFetcher {
                     //Otherview if the normalised url is equal to the resolved it gets skipped by mistake
 
                     //set as visited the normalised url
-                    VisitedURLs.getInstance().setVisited(feedURL, url.getUlr());
+                    VisitedURLs.getInstance().setVisited(feedURL, url.getUrl());
                     //set as visited the resolved url if different from the normalised one
-                    if(!resolvedURL.equals(url.getUlr())) {
+                    if(!resolvedURL.equals(url.getUrl())) {
                         VisitedURLs.getInstance().setVisited(feedURL, resolvedURL);
                     }
 
-                    url.setUlr(resolvedURL);
+                    url.setUrl(resolvedURL);
 
                     urls.add(url);
                     limit--;
@@ -167,7 +167,7 @@ public class FeedFetcher {
 
 
         feedURL.setReferralURL(referalURL);
-        feedURL.setUlr(cleanLink);
+        feedURL.setUrl(cleanLink);
         feedURL.setDiscoverDate(dateFormatter.format(new Date()));
         if (feedEntry.getPublishedDate() != null) {
             feedURL.setPublicationDate(simpleDateFormat.format(feedEntry.getPublishedDate()));

@@ -262,7 +262,7 @@ public class URLResolver {
             } catch (ClientProtocolException ex) {
 
                 //Workarond in case some stupid wesites have a wrongly formatted redirect
-                if (ex.getCause().getClass().isAssignableFrom(ProtocolException.class)) {
+                if (ex.getCause()!=null && ex.getCause().getClass().isAssignableFrom(ProtocolException.class)) {
                     if (ex.getCause().getCause().getClass().isAssignableFrom(URISyntaxException.class)) {
                         URISyntaxException e = (URISyntaxException) ex.getCause().getCause();
 

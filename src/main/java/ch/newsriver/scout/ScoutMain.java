@@ -1,19 +1,13 @@
 package ch.newsriver.scout;
 import ch.newsriver.dao.RedisPoolUtil;
-import ch.newsriver.executable.Main;
 import ch.newsriver.executable.poolExecution.MainWithPoolExecutorOptions;
 import ch.newsriver.util.http.HttpClientPool;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.util.LinkedList;
-import java.util.Map;
 
 /**
  * Created by Elia Palme on 10/03/16.
@@ -30,7 +24,8 @@ public class ScoutMain extends MainWithPoolExecutorOptions {
         new ScoutMain(args);
     }
 
-    static Scout scout;
+    static ScoutSources scoutSources;
+    static ScoutHTMLs   scoutHTMLs;
 
     public int getDefaultPort(){
         return DEFAUTL_PORT;
@@ -42,7 +37,8 @@ public class ScoutMain extends MainWithPoolExecutorOptions {
 
 
     public void shutdown(){
-        if(scout!=null)scout.stop();
+        if(scoutSources !=null) scoutSources.stop();
+        if(scoutHTMLs !=null) scoutHTMLs.stop();
         RedisPoolUtil.getInstance().destroy();
         HttpClientPool.shutdown();
     }
@@ -59,10 +55,14 @@ public class ScoutMain extends MainWithPoolExecutorOptions {
         }
         try {
             System.out.println("Threads pool size:" + this.getPoolSize() +"\tbatch size:"+this.getBatchSize()+"\tqueue size:"+this.getBatchSize());
-            scout = new Scout(this.getPoolSize(),this.getBatchSize(),this.getQueueSize());
-            new Thread(scout).start();
+            scoutSources = new ScoutSources(this.getPoolSize(),this.getBatchSize(),this.getQueueSize());
+            new Thread(scoutSources).start();
+
+            scoutHTMLs = new ScoutHTMLs(this.getPoolSize(),this.getBatchSize(),this.getQueueSize());
+            new Thread(scoutHTMLs).start();
+
         } catch (Exception e) {
-            logger.fatal("Unable to initialize scout", e);
+            logger.fatal("Unable to initialize scoutSources", e);
         }
     }
 
