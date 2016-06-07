@@ -2,6 +2,7 @@ package ch.newsriver.scout;
 
 import ch.newsriver.dao.ElasticsearchPoolUtil;
 import ch.newsriver.data.content.Article;
+import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.html.HTML;
 import ch.newsriver.data.source.BaseSource;
 import ch.newsriver.data.source.FeedSource;
@@ -161,40 +162,31 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                                 byte[] hash = digest.digest(html.getUrl().getBytes(StandardCharsets.UTF_8));
                                 urlHash = org.apache.commons.codec.binary.Base64.encodeBase64URLSafeString(hash);
 
-                                GetResponse response = client.prepareGet("newsriver", "article", urlHash).execute().actionGet();
-                                if (response.isExists()) {
+                                Article article = ArticleFactory.getInstance().getArticle(urlHash);
 
-                                    Article article = mapper.readValue(response.getSourceAsString(), Article.class);
+                                if (article != null) {
+                                    //Check if the article already contains this
 
-                                    if (article != null) {
-                                        //Check if the article already contains this
+                                    if (referral != null) {
+                                        boolean notFound = article.getReferrals().stream().noneMatch(baseURL -> seedURL.getReferralURL() != null && baseURL.getReferralURL().equals(seedURL.getReferralURL()));
+                                        if (notFound) {
 
-                                        if (referral != null) {
-                                            boolean notFound = article.getReferrals().stream().noneMatch(baseURL -> seedURL.getReferralURL() != null && baseURL.getReferralURL().equals(seedURL.getReferralURL()));
-                                            if (notFound) {
+                                            LinkURL linkURL = new LinkURL();
+                                            linkURL.setUrl(html.getUrl());
+                                            linkURL.setReferralURL(html.getReferral().getReferralURL());
+                                            linkURL.setDiscoverDate(dateFormatter.format(new Date()));
+                                            linkURL.setRawURL(html.getReferral().getRawURL());
 
-                                                LinkURL linkURL = new LinkURL();
-                                                linkURL.setUrl(html.getUrl());
-                                                linkURL.setReferralURL(html.getReferral().getReferralURL());
-                                                linkURL.setDiscoverDate(dateFormatter.format(new Date()));
-                                                linkURL.setRawURL(html.getReferral().getRawURL());
-
-                                                article.getReferrals().add(linkURL);
-                                                IndexRequest indexRequest = new IndexRequest("newsriver", "article", urlHash);
-                                                indexRequest.source(mapper.writeValueAsString(article));
-                                                client.index(indexRequest).actionGet();
-                                            }
+                                            article.getReferrals().add(linkURL);
+                                            ArticleFactory.getInstance().updateArticle(article);
                                         }
-
                                     }
+
                                 }
 
 
                             } catch (NoSuchAlgorithmException e) {
                                 logger.fatal("Unable to compute URL hash", e);
-                                return null;
-                            } catch (IOException e) {
-                                logger.fatal("Unable to deserialize article", e);
                                 return null;
                             } catch (Exception e) {
                                 logger.error("Unable to get article from elasticsearch", e);
