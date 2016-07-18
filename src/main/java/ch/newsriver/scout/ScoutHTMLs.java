@@ -3,6 +3,7 @@ package ch.newsriver.scout;
 import ch.newsriver.dao.ElasticsearchPoolUtil;
 import ch.newsriver.data.content.Article;
 import ch.newsriver.data.content.ArticleFactory;
+import ch.newsriver.data.html.AjaxHTML;
 import ch.newsriver.data.html.HTML;
 import ch.newsriver.data.source.BaseSource;
 import ch.newsriver.data.source.FeedSource;
@@ -124,98 +125,36 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                     supplyAsyncInterruptExecutionWithin(() -> {
 
 
-                        HTML html = null;
+                        //This is a one pass or deep 0 scan
+                        //Seed URLs are sent for HTML retreival from the scout. The HTML of the seed URL is sent back to the scout by the miner.
+                        //The scout will than extract all links of the seed URL html and check if the links have been already visited or not
+                        //Anay newly discovered link is set as visited and passed to the miner as raw-URL for mining and article extraction.
+                        //New unvisited URL are immediatelly marked as visited to avoid recurring issues. For example if the url is marked as visited only
+                        //after it has been downloaded by the miner there is a possible risk caused by the miner unability to download the file.
+                        //If this happen the url will never be marked as visited and the scout will infinitilly try to fetch it.
+
+
+
+                        final HTML html;
                         try {
                             html = mapper.readValue(record.value(), HTML.class);
                         } catch (IOException e) {
                             logger.error("Error deserialising HTML", e);
                             return null;
                         }
-                        final SeedURL seedURL;
-                        try {
-                            seedURL = mapper.readValue(record.key(), SeedURL.class);
-                        } catch (IOException e) {
-                            logger.error("Error deserialising URLSeedSource", e);
-                            return null;
-                        }
 
                         URI referral = null;
                         try {
-                            referral = new URI(seedURL.getReferralURL());
+                            referral = new URI(html.getReferral().getReferralURL());
                         } catch (Exception e) {
                             logger.error("Unvalid SeedURL", e);
                             return null;
                         }
 
-                        if (ScannedURLs.getInstance().isVisited(referral.getHost(), seedURL.getUrl())) {
 
-                            //TODO: her we may want to update an existing document ans set the
-                            //seenSince date. This will allow us to compute how long an article has been featured.
-
-
-                            Client client = null;
-                            client = ElasticsearchPoolUtil.getInstance().getClient();
-
-                            String urlHash = "";
-                            try {
-                                MessageDigest digest = MessageDigest.getInstance("SHA-512");
-                                byte[] hash = digest.digest(html.getUrl().getBytes(StandardCharsets.UTF_8));
-                                urlHash = org.apache.commons.codec.binary.Base64.encodeBase64URLSafeString(hash);
-
-                                Article article = ArticleFactory.getInstance().getArticle(urlHash);
-
-                                if (article != null) {
-                                    //Check if the article already contains this
-
-                                    if (referral != null) {
-                                        boolean notFound = article.getReferrals().stream().noneMatch(baseURL -> seedURL.getReferralURL() != null && baseURL.getReferralURL().equals(seedURL.getReferralURL()));
-                                        if (notFound) {
-
-                                            LinkURL linkURL = new LinkURL();
-                                            linkURL.setUrl(html.getUrl());
-                                            linkURL.setReferralURL(html.getReferral().getReferralURL());
-                                            linkURL.setDiscoverDate(dateFormatter.format(new Date()));
-                                            linkURL.setRawURL(html.getReferral().getRawURL());
-
-                                            article.getReferrals().add(linkURL);
-                                            ArticleFactory.getInstance().updateArticle(article);
-                                        }
-                                    }
-
-                                }
-
-
-                            } catch (NoSuchAlgorithmException e) {
-                                logger.fatal("Unable to compute URL hash", e);
-                                return null;
-                            } catch (Exception e) {
-                                logger.error("Unable to get article from elasticsearch", e);
-                                return null;
-                            }
-
-
-                        } else {
-                            ScannedURLs.getInstance().setVisited(referral.getHost(), seedURL.getUrl());
-
-                            //TODO: run classifier to establish if HTML contains and article
-                            LinkURL linkURL = new LinkURL();
-                            linkURL.setUrl(seedURL.getUrl());
-                            linkURL.setReferralURL(seedURL.getReferralURL());
-                            linkURL.setDiscoverDate(dateFormatter.format(new Date()));
-                            linkURL.setRawURL(seedURL.getRawURL());
-                            try {
-                                String json = mapper.writeValueAsString(linkURL);
-                                producer.send(new ProducerRecord<String, String>("raw-urls", linkURL.getUrl(), json));
-                                metrics.logMetric("submitted url", seedURL);
-                                ScoutMain.addMetric("Submitted URLs", 1);
-                            } catch (Exception e) {
-                                logger.fatal("Unable to serialize seedURL", e);
-                            }
-
-                        }
 
                         //we only scan links of the index seed url
-                        if (seedURL.getDepth() != 0) {
+                        if (((SeedURL)html.getReferral()).getDepth() != 0) {
 
                             return null;
                         }
@@ -226,12 +165,21 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                         Set<String> seenURLs = new HashSet<String>();
 
                         //add seedURL to skip aouto references
-                        seenURLs.add(seedURL.getUrl());
-                        seenURLs.add(seedURL.getUrl() + "/");
-                        seenURLs.add(seedURL.getRawURL());
+                        seenURLs.add(html.getReferral().getUrl());
+                        seenURLs.add(html.getReferral().getUrl() + "/");
+                        seenURLs.add(html.getReferral().getRawURL());
 
+                        Set<String> urlStrs = new HashSet<String>();
                         for (Element link : links) {
-                            String urlStr = link.attr("abs:href");
+                            urlStrs.add(link.attr("abs:href"));
+                        }
+
+                        if(html instanceof AjaxHTML){
+                            urlStrs.addAll(((AjaxHTML) html).getDynamicURLs());
+                        }
+
+
+                        for (String urlStr : urlStrs) {
 
                             if (urlStr == null || urlStr.isEmpty()) {
                                 continue;
@@ -240,6 +188,7 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                             if (!seenURLs.add(urlStr)) {
                                 continue;
                             }
+
 
                             //Test URL is not valid continue
                             URI url = null;
@@ -275,18 +224,42 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                                 }
                             }
 
-                            SeedURL nextSeed = new SeedURL();
-                            nextSeed.setRawURL(urlStr);
-                            nextSeed.setUrl(resolvedURL);
-                            nextSeed.setReferralURL(html.getUrl());
-                            nextSeed.setDepth(nextSeed.getDepth() + 1);
-
-                            try {
-                                String json = mapper.writeValueAsString(nextSeed);
-                                producer.send(new ProducerRecord<String, String>("raw-urls", nextSeed.getUrl(), json));
-                            } catch (Exception e) {
-                                logger.fatal("Unable to serialize seedURL result", e);
+                            //if we have already visited this page from this referral continue;
+                            if (ScannedURLs.getInstance().isVisited(html.getUrl(), resolvedURL)) {
+                                continue;
+                                //TODO: eventually if we want to track how long a page is featured
+                                //here we could update the article referrals list.
                             }
+
+                            //any url that is processed by this method is set as visited
+                            ScannedURLs.getInstance().setVisited(html.getUrl(), resolvedURL);
+
+                            //skip self referencing pages
+                            if(html.getUrl().equals(resolvedURL)){
+                                continue;
+                            }
+
+                            //New unknow link found send it for article extraction
+
+                            //TODO: run classifier to establish if HTML contains and article
+                            LinkURL linkURL = new LinkURL();
+                            linkURL.setUrl(resolvedURL);
+                            linkURL.setReferralURL(html.getUrl());
+                            linkURL.setDiscoverDate(dateFormatter.format(new Date()));
+                            linkURL.setRawURL(urlStr);
+
+                            if(!updatedExistingArticle( linkURL )) {
+
+                                try {
+                                    String json = mapper.writeValueAsString(linkURL);
+                                    producer.send(new ProducerRecord<String, String>("raw-urls", linkURL.getUrl(), json));
+                                    metrics.logMetric("submitted url", linkURL);
+                                    ScoutMain.addMetric("Submitted URLs", 1);
+                                } catch (Exception e) {
+                                    logger.fatal("Unable to serialize seedURL", e);
+                                }
+                            }
+
                         }
 
 
@@ -308,6 +281,40 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                 logger.fatal("Requested a batch size bigger than pool capability.");
             }
         }
+    }
+
+
+    private boolean updatedExistingArticle(LinkURL linkURL ){
+
+        Client client = null;
+        client = ElasticsearchPoolUtil.getInstance().getClient();
+
+        String urlHash = "";
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-512");
+            byte[] hash = digest.digest(linkURL.getUrl().getBytes(StandardCharsets.UTF_8));
+            urlHash = org.apache.commons.codec.binary.Base64.encodeBase64URLSafeString(hash);
+
+            Article article = ArticleFactory.getInstance().getArticle(urlHash);
+
+            if (article != null) {
+                //Check if the article already contains this
+                    boolean notFound = article.getReferrals().stream().noneMatch(baseURL -> linkURL.getReferralURL() != null && baseURL.getReferralURL().equals(linkURL.getReferralURL()));
+                    if (notFound) {
+                        article.getReferrals().add(linkURL);
+                        ArticleFactory.getInstance().updateArticle(article);
+                    }
+                return true;
+            }
+
+        } catch (NoSuchAlgorithmException e) {
+            logger.fatal("Unable to compute URL hash", e);
+            return false;
+        } catch (Exception e) {
+            logger.error("Unable to get article from elasticsearch", e);
+            return false;
+        }
+        return false;
     }
 
 

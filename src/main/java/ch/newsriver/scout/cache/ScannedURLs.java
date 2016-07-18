@@ -12,9 +12,10 @@ import java.net.URI;
 public class ScannedURLs {
 
 
-    private final static String REDIS_KEY_PREFIX     = "scanURL";
-    private final static String REDIS_KEY_VERSION     = "2";
-    private final static Long   REDIS_KEY_EXP_SECONDS = 60l * 60l * 24l * 30l * 3l; //about 3 months
+
+    private final static String REDIS_KEY_PREFIX              = "scanURL";
+    private final static String REDIS_KEY_VERSION             = "2";
+    private final static Long   REDIS_KEY_EXP_SECONDS         = 60l * 60l * 24l * 30l * 3l; //about 3 months
     static ScannedURLs instance=null;
 
     public static synchronized ScannedURLs getInstance(){
@@ -34,6 +35,9 @@ public class ScannedURLs {
                 .append(url).toString();
     }
 
+
+
+
     public boolean isVisited(String host, String url){
 
         try (Jedis jedis = RedisPoolUtil.getInstance().getResource(RedisPoolUtil.DATABASES.VISITED_URLS)) {
@@ -49,5 +53,10 @@ public class ScannedURLs {
             jedis.set(getKey(host,url),"","NX","EX",REDIS_KEY_EXP_SECONDS);
         };
     }
+
+
+
+
+
 
 }

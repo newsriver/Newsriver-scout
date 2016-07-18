@@ -1,5 +1,6 @@
 package ch.newsriver.scout.url;
 
+import ch.newsriver.data.html.HTML;
 import ch.newsriver.util.HTMLUtils;
 import ch.newsriver.util.http.HttpClientPool;
 import ch.newsriver.util.normalization.url.URLUtils;
@@ -175,9 +176,9 @@ public class URLResolver {
 
             // Avoid an exception with publisher paywall. For example, new yourk times
             try {
-                String content = HTMLUtils.getHTML(result.url, emulateMobile);
+                HTML html = HTMLUtils.getHTML(result.url, emulateMobile);
                 //Search for HTML redirects in the page
-                url = findMetaRefresh(content);
+                url = findMetaRefresh(html.getRawHTML());
                 if(url!=null){
                     continue;
                 }
