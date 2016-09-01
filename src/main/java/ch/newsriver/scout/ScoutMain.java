@@ -64,8 +64,8 @@ public class ScoutMain extends MainWithPoolExecutorOptions {
             scoutHTMLs = new ScoutHTMLs(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
             new Thread(scoutHTMLs).start();
 
-            scoutWebSites = new ScoutWebsites(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
-            new Thread(scoutWebSites).start();
+            /*scoutWebSites = new ScoutWebsites(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
+            new Thread(scoutWebSites).start();*/
 
         } catch (Exception e) {
             logger.fatal("Unable to initialize scoutSources", e);
