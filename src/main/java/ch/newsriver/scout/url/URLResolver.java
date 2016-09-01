@@ -14,6 +14,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.RedirectLocations;
 import org.apache.http.protocol.HttpContext;
@@ -21,6 +22,7 @@ import org.apache.http.protocol.HttpCoreContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.net.ssl.SSLProtocolException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
@@ -261,6 +263,18 @@ public class URLResolver {
                     }
                 }
             } catch (UnknownHostException ex) {
+                logger.info("Unable to resolve URL: " + url, ex);
+                throw ex;
+            } catch (SSLProtocolException ex) {
+                logger.info("Unable to resolve URL: " + url, ex);
+                throw ex;
+            } catch (SocketTimeoutException ex) {
+                logger.info("Unable to resolve URL: " + url, ex);
+                throw ex;
+            } catch (ConnectTimeoutException ex) {
+                logger.info("Unable to resolve URL: " + url, ex);
+                throw ex;
+            } catch (SocketException ex) {
                 logger.info("Unable to resolve URL: " + url, ex);
                 throw ex;
             } catch (Exception ex) {

@@ -136,7 +136,7 @@ public class FeedFetcher {
         try {
             cleanLink = URLUtils.normalizeUrl(feedURL.getRawURL().trim(), feedEntry.getLink());
         } catch (MalformedURLException ex) {
-            logger.fatal("Unable to resolve link for feed entry:" + feedEntry.getLink(), ex);
+            logger.warn("Unable to resolve link for feed entry:" + feedEntry.getLink(), ex);
             return null;
         }
 
