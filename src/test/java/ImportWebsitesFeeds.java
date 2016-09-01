@@ -1,36 +1,8 @@
-import ch.newsriver.dao.ElasticsearchPoolUtil;
-import ch.newsriver.dao.JDBCPoolUtil;
-import ch.newsriver.data.content.Article;
-import ch.newsriver.data.source.FeedSource;
-import ch.newsriver.data.source.SourceFactory;
-import ch.newsriver.data.website.WebSite;
-import ch.newsriver.data.website.WebSiteFactory;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.lucene.queryparser.xml.FilterBuilder;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.sort.FieldSortBuilder;
-import org.elasticsearch.search.sort.SortOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
 
 /**
  * Created by eliapalme on 19/04/16.
@@ -40,7 +12,7 @@ public class ImportWebsitesFeeds {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
-
+    @Ignore("Test is ignored, used for internal manipulation")
     @Test
     public void importWebSiteFeeds() throws Exception {
 

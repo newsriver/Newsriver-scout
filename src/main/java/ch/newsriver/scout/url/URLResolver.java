@@ -3,7 +3,7 @@ package ch.newsriver.scout.url;
 import ch.newsriver.data.html.HTML;
 import ch.newsriver.util.HTMLUtils;
 import ch.newsriver.util.http.HttpClientPool;
-import ch.newsriver.util.normalization.url.URLUtils;
+import ch.newsriver.util.url.URLUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -34,15 +34,14 @@ import java.util.regex.Pattern;
  */
 public class URLResolver {
 
-    private static final Logger logger = LogManager.getLogger(URLResolver.class);
-
-    private static final HashSet<String> bannedHosts = new HashSet<String>();
     static final String MOBILE_USER_AGENT = "Mozilla/5.0 (iPhone; U; CPU iPhone OS 3_0 like Mac OS X; en-us) AppleWebKit/528.18 (KHTML, like Gecko) Version/4.0 Mobile/7A341 Safari/528.16";
     static final String DEFAUL_USER_AGENT = "curl/7.24.0 (x86_64-apple-darwin12.0) libcurl/7.24.0 OpenSSL/0.9.8r zlib/1.2.5";
     static final String DESKTOP_EMULATE_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36";
-
     static final Pattern REFRESHMETAREGEX = Pattern.compile("meta.+content=\\\".+url=(.*)\\\".*");
     static final Pattern GOOGLEREDIRECTSREGEX = Pattern.compile(".+www.google.com/url.+url=([^&]*).*?");
+    private static final Logger logger = LogManager.getLogger(URLResolver.class);
+    private static final HashSet<String> bannedHosts = new HashSet<String>();
+    private static URLResolver instance = null;
 
     static {
         //Google
@@ -60,23 +59,19 @@ public class URLResolver {
         bannedHosts.add("www.facebook.com");
     }
 
-
-
-    private static URLResolver instance=null;
-
-    private URLResolver(){
+    private URLResolver() {
 
     }
 
-    public static synchronized URLResolver getInstance(){
+    public static synchronized URLResolver getInstance() {
 
-        if(instance==null){
+        if (instance == null) {
             instance = new URLResolver();
         }
         return instance;
     }
 
-    public String resolveURL(String rawURL) throws InvalidURLException{
+    public String resolveURL(String rawURL) throws InvalidURLException {
 
 /*
         try {
@@ -87,79 +82,71 @@ public class URLResolver {
 */
 
 
-    //Try to clean URL by following redirects and removing google analytics campaign queries
-    String URL = null;
-    try {
-        URL = resolveUrl(rawURL,false,null);
-    } catch (MalformedURLException ex) {
-        logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
-    } catch (URISyntaxException ex) {
-        logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
-    } catch (IOException ex) {
-        logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
-    } catch (IllegalArgumentException ex) {
-        logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
-    }
-    if (URL == null) {
-        logger.warn("Unable to clean stand alone url. Artile=" + rawURL);
-        throw new InvalidURLException("Invalid Article url:" + rawURL);
-    }
+        //Try to clean URL by following redirects and removing google analytics campaign queries
+        String URL = null;
+        try {
+            URL = resolveUrl(rawURL, false, null);
+        } catch (MalformedURLException ex) {
+            logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
+        } catch (URISyntaxException ex) {
+            logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
+        } catch (IOException ex) {
+            logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
+        }
+        if (URL == null) {
+            logger.warn("Unable to clean stand alone url. Artile=" + rawURL);
+            throw new InvalidURLException("Invalid Article url:" + rawURL);
+        }
 
-    String host=null;
-    try {
-        URI uri;
-        uri = new URI(URL);
-        host = uri.getHost();
-    } catch (URISyntaxException ex) {
-        logger.warn("Unable to exctract host from URL", ex);
-    }
+        String host = null;
+        try {
+            URI uri;
+            uri = new URI(URL);
+            host = uri.getHost();
+        } catch (URISyntaxException ex) {
+            logger.warn("Unable to exctract host from URL", ex);
+        }
 
-    if (host == null) {
-        logger.warn("Unable to extract host from url. Artile=" + rawURL);
-        throw new InvalidURLException("Invalid Article url:" + rawURL);
-    }
+        if (host == null) {
+            logger.warn("Unable to extract host from url. Artile=" + rawURL);
+            throw new InvalidURLException("Invalid Article url:" + rawURL);
+        }
 
-    if(bannedHosts.contains(host)){
-        logger.warn("Unable to import Article, its domain is banned. Artile=" + rawURL);
-        throw new InvalidURLException("Banned Article url:" + rawURL);
-    }
+        if (bannedHosts.contains(host)) {
+            logger.warn("Unable to import Article, its domain is banned. Artile=" + rawURL);
+            throw new InvalidURLException("Banned Article url:" + rawURL);
+        }
 
         return URL;
     }
 
 
-
     public URI escapeURI(String dirtyUrl) {
         try {
             //Next two steps are used to escape disalowed carachters
-            URL uri = new URL(URLDecoder.decode(dirtyUrl.trim(),"utf-8")); //decode in case there are urlencoded chars
+            URL uri = new URL(URLDecoder.decode(dirtyUrl.trim(), "utf-8")); //decode in case there are urlencoded chars
             URI escaped_uri = new URI(uri.getProtocol(), uri.getUserInfo(), uri.getHost(), uri.getPort(), uri.getPath(), uri.getQuery(), uri.getRef()); //Re-encode and ensure that all caracters are correctly encoded
             return escaped_uri;
         } catch (URISyntaxException ex) {
-            logger.fatal("url: " +dirtyUrl, ex);
+            logger.fatal("url: " + dirtyUrl, ex);
         } catch (MalformedURLException ex) {
-            logger.fatal("url: " +dirtyUrl, ex);
+            logger.fatal("url: " + dirtyUrl, ex);
         } catch (UnsupportedEncodingException ex) {
-            logger.fatal("url: " +dirtyUrl, ex);
+            logger.fatal("url: " + dirtyUrl, ex);
         }
         return null;
     }
 
-    public class ResolveResult {
-        public boolean isResolved;
-        public String url;
-    }
-
-
-
     private String resolveUrl(String dirtyUrl, boolean emulateMobile, String expected) throws MalformedURLException, IOException, URISyntaxException {
 
-        String url =  dirtyUrl;
+        String url = dirtyUrl;
         ResolveResult result = null;
 
         //Also detects body redirects like refresh meta
         //but this may cause circular redirects therefore we only loop 3 times
-        for(int i=0;i<3;i++) {
+        for (int i = 0; i < 3; i++) {
             result = resolveUrlInternal(url, emulateMobile ? MOBILE_USER_AGENT : DEFAUL_USER_AGENT, expected);
 
             if (!result.isResolved && !emulateMobile) { // try to resolve with fake userAgent
@@ -169,7 +156,7 @@ public class URLResolver {
 
             //Search for GOOGLE redirect URLs
             url = findGoogleRedirect(url);
-            if(url!=null){
+            if (url != null) {
                 continue;
             }
 
@@ -179,61 +166,60 @@ public class URLResolver {
                 HTML html = HTMLUtils.getHTML(result.url, emulateMobile);
                 //Search for HTML redirects in the page
                 url = findMetaRefresh(html.getRawHTML());
-                if(url!=null){
+                if (url != null) {
                     continue;
                 }
 
-            } catch (Exception ex) {}
+            } catch (Exception ex) {
+            }
 
             //here other kind of HTML redirects could be added, like javascript redirects
 
             break;
         }
 
-        if(result==null)return null;
+        if (result == null) return null;
         return result.url;
     }
 
-    public String findMetaRefresh(String body){
+    public String findMetaRefresh(String body) {
 
         String bodyFlat = body.replaceAll(" ", "");
-        int index =  bodyFlat.indexOf("meta");
-        while (index>0){
-            bodyFlat = bodyFlat.substring(index,bodyFlat.length());
-            int end =  bodyFlat.indexOf(">");
-            if(end <= 0){
+        int index = bodyFlat.indexOf("meta");
+        while (index > 0) {
+            bodyFlat = bodyFlat.substring(index, bodyFlat.length());
+            int end = bodyFlat.indexOf(">");
+            if (end <= 0) {
                 break;
             }
-            String meta = bodyFlat.substring(0,end);
+            String meta = bodyFlat.substring(0, end);
 
-            if (meta.indexOf("http-equiv=\"refresh\"") <=0) {
+            if (meta.indexOf("http-equiv=\"refresh\"") <= 0) {
                 break;
             }
 
             Matcher metaMatch = REFRESHMETAREGEX.matcher(meta);
-            if(metaMatch.matches() && metaMatch.groupCount()==1) {
+            if (metaMatch.matches() && metaMatch.groupCount() == 1) {
                 return StringUtils.strip(metaMatch.group(1), "'");
             }
-            index= bodyFlat.indexOf("meta",4);
+            index = bodyFlat.indexOf("meta", 4);
         }
 
         return null;
     }
 
-    public String findGoogleRedirect(String url){
+    public String findGoogleRedirect(String url) {
 
         Matcher googleMatch = GOOGLEREDIRECTSREGEX.matcher(url);
-        if(googleMatch.matches() && googleMatch.groupCount()==1) {
+        if (googleMatch.matches() && googleMatch.groupCount() == 1) {
             try {
                 return URLDecoder.decode(googleMatch.group(1), "utf-8");
-            }catch (Exception e){
-                logger.error("Unable to decode google redirect url",e);
+            } catch (Exception e) {
+                logger.error("Unable to decode google redirect url", e);
             }
         }
         return null;
     }
-
-
 
     public ResolveResult resolveUrlInternal(String dirtyUrl, String userAgent, String expected) throws MalformedURLException, IOException, URISyntaxException {
         // Fix: We are doing this cleaning twice, otherwise we are loosing URL when crawling
@@ -263,19 +249,22 @@ public class URLResolver {
             } catch (ClientProtocolException ex) {
 
                 //Workarond in case some stupid wesites have a wrongly formatted redirect
-                if (ex.getCause()!=null && ex.getCause().getClass().isAssignableFrom(ProtocolException.class)) {
+                if (ex.getCause() != null && ex.getCause().getClass().isAssignableFrom(ProtocolException.class)) {
                     if (ex.getCause().getCause().getClass().isAssignableFrom(URISyntaxException.class)) {
                         URISyntaxException e = (URISyntaxException) ex.getCause().getCause();
 
-                        URL uri = new URL(URLDecoder.decode(e.getInput(),"utf-8"));
+                        URL uri = new URL(URLDecoder.decode(e.getInput(), "utf-8"));
                         escaped_uri = new URI(uri.getProtocol(), uri.getUserInfo(), uri.getHost(), uri.getPort(), uri.getPath(), uri.getQuery(), uri.getRef());
                         httpGetRequest = new HttpGet(escaped_uri);
                         httpGetRequest.addHeader("User-Agent", userAgent);
                         response = HttpClientPool.getHttpClientInstance().execute(httpGetRequest, context);
                     }
                 }
+            } catch (UnknownHostException ex) {
+                logger.info("Unable to resolve URL: " + url, ex);
+                throw ex;
             } catch (Exception ex) {
-                //Check new exception;
+                //TODO: eventually try to improve this catch all and add specific errors catch
                 logger.fatal("Unable to resolve URL: " + url, ex);
                 throw ex;
             }
@@ -314,7 +303,6 @@ public class URLResolver {
 
         return result;
     }
-
 
     private URI extractHttpLocation(HttpUriRequest originalRequest, HttpContext context) {
         try {
@@ -359,11 +347,16 @@ public class URLResolver {
         }
     }
 
-    public static class  InvalidURLException extends Exception{
+    public static class InvalidURLException extends Exception {
 
         public InvalidURLException(String message) {
             super(message);
         }
 
+    }
+
+    public class ResolveResult {
+        public boolean isResolved;
+        public String url;
     }
 }

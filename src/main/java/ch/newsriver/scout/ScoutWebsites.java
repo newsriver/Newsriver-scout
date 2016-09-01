@@ -3,6 +3,7 @@ package ch.newsriver.scout;
 import ch.newsriver.data.url.FeedURL;
 import ch.newsriver.data.url.SeedURL;
 import ch.newsriver.data.url.SourceRSSURL;
+import ch.newsriver.data.website.WebSiteFactory;
 import ch.newsriver.data.website.source.BaseSource;
 import ch.newsriver.data.website.source.FeedSource;
 import ch.newsriver.data.website.source.SourceFactory;
@@ -25,17 +26,17 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
  * Created by eliapalme on 10/03/16.
  */
-public class ScoutSources extends BatchInterruptibleWithinExecutorPool implements Runnable {
+public class ScoutWebsites extends BatchInterruptibleWithinExecutorPool implements Runnable {
 
-    private static final Logger logger = LogManager.getLogger(ScoutSources.class);
-    private static final MetricsLogger metrics = MetricsLogger.getLogger(ScoutSources.class, Main.getInstance().getInstanceName());
+    private static final Logger logger = LogManager.getLogger(ScoutWebsites.class);
+    private static final MetricsLogger metrics = MetricsLogger.getLogger(ScoutWebsites.class, Main.getInstance().getInstanceName());
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     private static final ObjectMapper mapper = new ObjectMapper();
     private static int MAX_EXECUTUION_DURATION = 120;
@@ -43,7 +44,7 @@ public class ScoutSources extends BatchInterruptibleWithinExecutorPool implement
     private int batchSize;
     private boolean run = false;
 
-    public ScoutSources(int poolSize, int batchSize, int queueSize) throws IOException {
+    public ScoutWebsites(int poolSize, int batchSize, int queueSize) throws IOException {
         super(poolSize, queueSize, Duration.ofSeconds(MAX_EXECUTUION_DURATION));
         run = true;
         this.batchSize = batchSize;
@@ -58,12 +59,12 @@ public class ScoutSources extends BatchInterruptibleWithinExecutorPool implement
             } else {
                 throw new FileNotFoundException("property file '" + propFileName + "' not found in the classpath");
             }
-        } catch (java.lang.Exception e) {
+        } catch (Exception e) {
             logger.error("Unable to load kafka properties", e);
         } finally {
             try {
                 inputStream.close();
-            } catch (java.lang.Exception e) {
+            } catch (Exception e) {
             }
         }
 
@@ -91,15 +92,15 @@ public class ScoutSources extends BatchInterruptibleWithinExecutorPool implement
                 //metrics.logMetric("processing batch",null);
 
 
-                Set<String> sourceIds = SourceFactory.getInstance().nextToVisits();
+                HashMap<String, BaseSource> sources = WebSiteFactory.getInstance().nextWebsiteSourceToVisits();
 
-                for (String id : sourceIds) {
+                for (String id : sources.keySet()) {
 
+                    BaseSource source = sources.get(id);
                     CompletableFuture x = supplyAsyncInterruptExecutionWithin(() ->
                     {
 
-                        BaseSource source = SourceFactory.getInstance().getSource(id);
-                        SourceFactory.getInstance().updateLastVisit(id);
+                        WebSiteFactory.getInstance().updateLastVisit(id, source);
 
                         if (source instanceof FeedSource) {
 

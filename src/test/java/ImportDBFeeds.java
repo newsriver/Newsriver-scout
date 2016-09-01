@@ -1,24 +1,7 @@
-import ch.newsriver.dao.JDBCPoolUtil;
-import ch.newsriver.data.source.FeedSource;
-import ch.newsriver.data.source.SourceFactory;
-import ch.newsriver.data.website.WebSite;
-import ch.newsriver.data.website.WebSiteFactory;
+import org.junit.Ignore;
 import org.junit.Test;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 
 /**
  * Created by eliapalme on 19/04/16.
@@ -27,6 +10,7 @@ public class ImportDBFeeds {
 
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
+    @Ignore("Test is ignored, used for internal manipulation")
     @Test
     public void importDBFeeds() throws Exception {
 

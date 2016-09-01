@@ -1,24 +1,11 @@
-import ch.newsriver.data.source.BaseSource;
-import ch.newsriver.data.source.SourceFactory;
-import ch.newsriver.data.source.URLSeedSource;
-import org.junit.Test;
-
-import java.net.URI;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
-
 /**
  * Created by eliapalme on 29/05/16.
  */
 public class AddSeedURLSource {
 
+    /*
+
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-
-
-
 
 
     @Test
@@ -35,7 +22,7 @@ public class AddSeedURLSource {
             try {
                 URI uri = new URI(url);
                 addSeedURLSource(url);
-            }catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         });
@@ -44,7 +31,7 @@ public class AddSeedURLSource {
     }
 
 
-    private void addSeedURLSource(String url){
+    private void addSeedURLSource(String url) {
 
         URLSeedSource source = new URLSeedSource();
 

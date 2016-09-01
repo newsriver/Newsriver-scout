@@ -5,22 +5,16 @@ import ch.newsriver.data.content.Article;
 import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.html.AjaxHTML;
 import ch.newsriver.data.html.HTML;
-import ch.newsriver.data.source.BaseSource;
-import ch.newsriver.data.source.FeedSource;
-import ch.newsriver.data.source.SourceFactory;
-import ch.newsriver.data.source.URLSeedSource;
-import ch.newsriver.data.url.*;
+import ch.newsriver.data.url.LinkURL;
+import ch.newsriver.data.url.SeedURL;
 import ch.newsriver.executable.Main;
 import ch.newsriver.executable.poolExecution.BatchInterruptibleWithinExecutorPool;
 import ch.newsriver.performance.MetricsLogger;
 import ch.newsriver.scout.cache.ResolvedURLs;
 import ch.newsriver.scout.cache.ScannedURLs;
 import ch.newsriver.scout.feed.FeedFetcher;
-import ch.newsriver.scout.feed.FeedFetcherResult;
 import ch.newsriver.scout.url.URLResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.webkit.ThemeClient;
-import org.apache.commons.codec.binary.*;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -30,9 +24,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -49,7 +40,6 @@ import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Created by eliapalme on 10/03/16.
@@ -59,15 +49,12 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
     private static final Logger logger = LogManager.getLogger(ScoutHTMLs.class);
     private static final MetricsLogger metrics = MetricsLogger.getLogger(ScoutHTMLs.class, Main.getInstance().getInstanceName());
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-
-    private static int MAX_EXECUTUION_DURATION = 120;
-
-
     private static final ObjectMapper mapper = new ObjectMapper();
-    private int batchSize;
-    private boolean run = false;
+    private static int MAX_EXECUTUION_DURATION = 120;
     Consumer<String, String> consumer;
     Producer<String, String> producer;
+    private int batchSize;
+    private boolean run = false;
 
     public ScoutHTMLs(int poolSize, int batchSize, int queueSize) throws IOException {
         super(poolSize, queueSize, Duration.ofSeconds(MAX_EXECUTUION_DURATION));
@@ -134,7 +121,6 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                         //If this happen the url will never be marked as visited and the scout will infinitilly try to fetch it.
 
 
-
                         final HTML html;
                         try {
                             html = mapper.readValue(record.value(), HTML.class);
@@ -152,9 +138,8 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                         }
 
 
-
                         //we only scan links of the index seed url
-                        if (((SeedURL)html.getReferral()).getDepth() != 0) {
+                        if (((SeedURL) html.getReferral()).getDepth() != 0) {
 
                             return null;
                         }
@@ -174,7 +159,7 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                             urlStrs.add(link.attr("abs:href"));
                         }
 
-                        if(html instanceof AjaxHTML){
+                        if (html instanceof AjaxHTML) {
                             urlStrs.addAll(((AjaxHTML) html).getDynamicURLs());
                         }
 
@@ -235,7 +220,7 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                             ScannedURLs.getInstance().setVisited(html.getUrl(), resolvedURL);
 
                             //skip self referencing pages
-                            if(html.getUrl().equals(resolvedURL)){
+                            if (html.getUrl().equals(resolvedURL)) {
                                 continue;
                             }
 
@@ -248,7 +233,7 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                             linkURL.setDiscoverDate(dateFormatter.format(new Date()));
                             linkURL.setRawURL(urlStr);
 
-                            if(!updatedExistingArticle( linkURL )) {
+                            if (!updatedExistingArticle(linkURL)) {
 
                                 try {
                                     String json = mapper.writeValueAsString(linkURL);
@@ -284,7 +269,7 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
     }
 
 
-    private boolean updatedExistingArticle(LinkURL linkURL ){
+    private boolean updatedExistingArticle(LinkURL linkURL) {
 
         Client client = null;
         client = ElasticsearchPoolUtil.getInstance().getClient();
@@ -299,11 +284,11 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
 
             if (article != null) {
                 //Check if the article already contains this
-                    boolean notFound = article.getReferrals().stream().noneMatch(baseURL -> linkURL.getReferralURL() != null && baseURL.getReferralURL().equals(linkURL.getReferralURL()));
-                    if (notFound) {
-                        article.getReferrals().add(linkURL);
-                        ArticleFactory.getInstance().updateArticle(article);
-                    }
+                boolean notFound = article.getReferrals().stream().noneMatch(baseURL -> linkURL.getReferralURL() != null && baseURL.getReferralURL().equals(linkURL.getReferralURL()));
+                if (notFound) {
+                    article.getReferrals().add(linkURL);
+                    ArticleFactory.getInstance().updateArticle(article);
+                }
                 return true;
             }
 

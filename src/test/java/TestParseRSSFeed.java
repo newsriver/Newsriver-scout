@@ -1,36 +1,30 @@
-import ch.newsriver.data.url.FeedURL;
-import ch.newsriver.scout.ScoutMain;
-import ch.newsriver.scout.cache.ResolvedURLs;
-import ch.newsriver.scout.cache.VisitedURLs;
 import ch.newsriver.scout.feed.FeedFetcher;
-import ch.newsriver.scout.feed.FeedFetcherResult;
-import ch.newsriver.scout.url.URLResolver;
 import ch.newsriver.util.http.HttpClientPool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.InputStream;
 import java.util.Properties;
 
-import static org.junit.Assert.*;
-
 /**
  * Created by eliapalme on 08/04/16.
  */
+
+@Ignore("Test is ignored, used for internal manipulation")
 public class TestParseRSSFeed {
 
+
+    private static final ObjectMapper mapper = new ObjectMapper();
+    Producer<String, String> producer;
 
     public TestParseRSSFeed() {
 
     }
-
-    private static final ObjectMapper mapper = new ObjectMapper();
-    Producer<String, String> producer;
 
     @Before
     public void initialize() throws Exception {

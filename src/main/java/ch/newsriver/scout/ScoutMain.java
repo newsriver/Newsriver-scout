@@ -1,4 +1,5 @@
 package ch.newsriver.scout;
+
 import ch.newsriver.dao.RedisPoolUtil;
 import ch.newsriver.executable.poolExecution.MainWithPoolExecutorOptions;
 import ch.newsriver.util.http.HttpClientPool;
@@ -15,51 +16,56 @@ import java.security.NoSuchAlgorithmException;
 public class ScoutMain extends MainWithPoolExecutorOptions {
 
 
-
     private static final int DEFAUTL_PORT = 9096;
     private static final Logger logger = LogManager.getLogger(ScoutMain.class);
+    static ScoutSources scoutSources;
+    static ScoutHTMLs scoutHTMLs;
+    static ScoutWebsites scoutWebSites;
 
-    public static void main(String[] args){
+    public ScoutMain(String[] args) {
+        super(args, true);
+    }
+
+    public static void main(String[] args) {
 
         new ScoutMain(args);
     }
 
-    static ScoutSources scoutSources;
-    static ScoutHTMLs   scoutHTMLs;
-
-    public int getDefaultPort(){
+    public int getDefaultPort() {
         return DEFAUTL_PORT;
     }
 
-    public ScoutMain(String[] args){
-        super(args,true);
-    }
-
-
-    public void shutdown(){
-        if(scoutSources !=null) scoutSources.stop();
-        if(scoutHTMLs !=null) scoutHTMLs.stop();
+    public void shutdown() {
+        if (scoutSources != null) scoutSources.stop();
+        if (scoutHTMLs != null) scoutHTMLs.stop();
+        if (scoutWebSites != null) scoutWebSites.stop();
         RedisPoolUtil.getInstance().destroy();
         HttpClientPool.shutdown();
     }
 
-    public void start(){
+    public void start() {
         try {
             HttpClientPool.initialize();
         } catch (NoSuchAlgorithmException e) {
-            logger.fatal("Unable to initialize HttpClientPool",e);
+            logger.fatal("Unable to initialize HttpClientPool", e);
         } catch (KeyStoreException e) {
-            logger.fatal("Unable to initialize HttpClientPool",e);
+            logger.fatal("Unable to initialize HttpClientPool", e);
         } catch (KeyManagementException e) {
-            logger.fatal("Unable to initialize HttpClientPool",e);
+            logger.fatal("Unable to initialize HttpClientPool", e);
         }
+
+        System.out.println("Threads pool size:" + this.getPoolSize() + "\tbatch size:" + this.getBatchSize() + "\tqueue size:" + this.getBatchSize());
+
+
         try {
-            System.out.println("Threads pool size:" + this.getPoolSize() +"\tbatch size:"+this.getBatchSize()+"\tqueue size:"+this.getBatchSize());
-            scoutSources = new ScoutSources(this.getPoolSize(),this.getBatchSize(),this.getQueueSize());
+            scoutSources = new ScoutSources(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
             new Thread(scoutSources).start();
 
-            scoutHTMLs = new ScoutHTMLs(this.getPoolSize(),this.getBatchSize(),this.getQueueSize());
+            scoutHTMLs = new ScoutHTMLs(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
             new Thread(scoutHTMLs).start();
+
+            scoutWebSites = new ScoutWebsites(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
+            new Thread(scoutWebSites).start();
 
         } catch (Exception e) {
             logger.fatal("Unable to initialize scoutSources", e);

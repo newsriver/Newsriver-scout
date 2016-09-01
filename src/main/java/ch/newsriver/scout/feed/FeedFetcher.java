@@ -1,40 +1,29 @@
 package ch.newsriver.scout.feed;
 
 
-import ch.newsriver.data.url.BaseURL;
 import ch.newsriver.data.url.FeedURL;
 import ch.newsriver.scout.cache.ResolvedURLs;
 import ch.newsriver.scout.cache.VisitedURLs;
 import ch.newsriver.scout.url.URLResolver;
-import ch.newsriver.util.normalization.text.TextNormaliser;
-import ch.newsriver.util.normalization.url.URLUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ch.newsriver.util.text.TextNormaliser;
+import ch.newsriver.util.url.URLUtils;
 import com.sun.syndication.feed.synd.SyndContent;
 import com.sun.syndication.feed.synd.SyndEntry;
 import com.sun.syndication.feed.synd.SyndFeed;
 import com.sun.syndication.fetcher.FetcherException;
-import com.sun.syndication.fetcher.impl.HttpClientFeedFetcher;
 import com.sun.syndication.io.FeedException;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.util.Supplier;
 import org.jsoup.Jsoup;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.time.*;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.concurrent.Callable;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Random;
 
 /**
  * Created by eliapalme on 11/03/16.
@@ -63,18 +52,6 @@ public class FeedFetcher {
     public FeedFetcher(String url) {
         feedURL = url;
     }
-
-
-    public FeedFetcherResult fetch() {
-        FeedFetcherResult result = null;
-        try {
-            return FeedFetcher.fetchUrls(feedURL, MAX_ARTICLES_PER_FETCH);
-        } catch (Throwable e) {
-            logger.error(e);
-            return null;
-        }
-    }
-
 
     public static FeedURL fetchRandomLink(String feedURL) throws MalformedURLException, IllegalArgumentException, IOException, FeedException, FetcherException {
 
@@ -130,7 +107,7 @@ public class FeedFetcher {
                     //set as visited the normalised url
                     VisitedURLs.getInstance().setVisited(feedURL, url.getUrl());
                     //set as visited the resolved url if different from the normalised one
-                    if(!resolvedURL.equals(url.getUrl())) {
+                    if (!resolvedURL.equals(url.getUrl())) {
                         VisitedURLs.getInstance().setVisited(feedURL, resolvedURL);
                     }
 
@@ -145,8 +122,6 @@ public class FeedFetcher {
         }
         return new FeedFetcherResult(urls, remainingArticles, feed.getEntries().size());
     }
-
-
 
     private static FeedURL getFeedUrl(SyndEntry feedEntry, String referalURL) {
         FeedURL feedURL = new FeedURL();
@@ -195,6 +170,16 @@ public class FeedFetcher {
         }
 
         return feedURL;
+    }
+
+    public FeedFetcherResult fetch() {
+        FeedFetcherResult result = null;
+        try {
+            return FeedFetcher.fetchUrls(feedURL, MAX_ARTICLES_PER_FETCH);
+        } catch (Throwable e) {
+            logger.error(e);
+            return null;
+        }
     }
 
 
