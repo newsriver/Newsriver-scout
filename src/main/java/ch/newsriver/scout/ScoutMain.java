@@ -58,10 +58,14 @@ public class ScoutMain extends MainWithPoolExecutorOptions {
 
 
         try {
-            scoutSources = new ScoutSources(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
+
+            //Note: we allocate 1/5 of threads to the the source scout since
+            //the html-seed queue needs more recources to processed
+
+            scoutSources = new ScoutSources(this.getPoolSize() / 5 + 1, this.getBatchSize() / 5 + 1, this.getQueueSize() / 5 + 1);
             new Thread(scoutSources).start();
 
-            scoutHTMLs = new ScoutHTMLs(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
+            scoutHTMLs = new ScoutHTMLs(this.getPoolSize() / 5 * 4 + 1, this.getBatchSize() / 5 * 4 + 1, this.getQueueSize() / 5 * 4 + 1);
             new Thread(scoutHTMLs).start();
 
             /*scoutWebSites = new ScoutWebsites(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
