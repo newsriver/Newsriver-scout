@@ -1,6 +1,6 @@
 package ch.newsriver.scout;
 
-import ch.newsriver.dao.ElasticsearchPoolUtil;
+import ch.newsriver.dao.ElasticsearchUtil;
 import ch.newsriver.data.content.Article;
 import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.html.AjaxHTML;
@@ -272,7 +272,7 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
     private boolean updatedExistingArticle(LinkURL linkURL) {
 
         Client client = null;
-        client = ElasticsearchPoolUtil.getInstance().getClient();
+        client = ElasticsearchUtil.getInstance().getClient();
 
         String urlHash = "";
         try {

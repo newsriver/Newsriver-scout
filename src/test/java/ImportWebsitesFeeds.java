@@ -21,7 +21,7 @@ public class ImportWebsitesFeeds {
 
 
         Client client = null;
-        client = ElasticsearchPoolUtil.getInstance().getClient();
+        client = ElasticsearchUtil.getInstance().getClient();
         LinkedList<String> feeds = new LinkedList<>();
         try {
             QueryBuilder qb = QueryBuilders.queryStringQuery("*");

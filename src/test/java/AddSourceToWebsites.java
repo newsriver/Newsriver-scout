@@ -1,4 +1,4 @@
-import ch.newsriver.dao.ElasticsearchPoolUtil;
+import ch.newsriver.dao.ElasticsearchUtil;
 import ch.newsriver.data.website.WebSite;
 import ch.newsriver.data.website.WebSiteFactory;
 import ch.newsriver.data.website.source.BaseSource;
@@ -34,7 +34,7 @@ public class AddSourceToWebsites {
 
 
         Client client = null;
-        client = ElasticsearchPoolUtil.getInstance().getClient();
+        client = ElasticsearchUtil.getInstance().getClient();
 
         try {
             QueryBuilder qb = QueryBuilders.queryStringQuery("type:FeedSource");

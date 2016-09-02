@@ -13,7 +13,7 @@ public class ResetVisitedDate {
 
 
         Client client = null;
-        client = ElasticsearchPoolUtil.getInstance().getClient();
+        client = ElasticsearchUtil.getInstance().getClient();
 
         try {
             QueryBuilder qb = QueryBuilders.queryStringQuery("*");
