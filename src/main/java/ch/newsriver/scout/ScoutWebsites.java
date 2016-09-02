@@ -92,7 +92,7 @@ public class ScoutWebsites extends BatchInterruptibleWithinExecutorPool implemen
                 //metrics.logMetric("processing batch",null);
 
 
-                HashMap<String, BaseSource> sources = WebSiteFactory.getInstance().nextWebsiteSourceToVisits();
+                HashMap<String, BaseSource> sources = WebSiteFactory.getInstance().nextWebsiteSourcesToVisits();
 
                 for (String id : sources.keySet()) {
 
@@ -100,7 +100,7 @@ public class ScoutWebsites extends BatchInterruptibleWithinExecutorPool implemen
                     CompletableFuture x = supplyAsyncInterruptExecutionWithin(() ->
                     {
 
-                        WebSiteFactory.getInstance().updateLastVisit(id, source);
+                        WebSiteFactory.getInstance().updateSourceLastVisit(id, source);
 
                         if (source instanceof FeedSource) {
 
