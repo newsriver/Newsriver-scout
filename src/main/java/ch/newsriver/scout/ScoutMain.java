@@ -60,7 +60,7 @@ public class ScoutMain extends MainWithPoolExecutorOptions {
         try {
 
             //Note: we allocate 1/5 of threads to the the source scout since
-            //the html-seed queue needs more recources to processed
+            //the html-seed queue needs more resources to follow
 
             scoutSources = new ScoutSources(this.getPoolSize() / 5 + 1, this.getBatchSize() / 5 + 1, this.getQueueSize() / 5 + 1);
             new Thread(scoutSources).start();
