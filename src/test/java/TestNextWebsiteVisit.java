@@ -14,11 +14,11 @@ public class TestNextWebsiteVisit {
     @Test
     public void nextToVisti() throws Exception {
 
-        HashMap<String, BaseSource> soruces = WebSiteFactory.getInstance().nextWebsiteSourceToVisits();
+        HashMap<String, BaseSource> soruces = WebSiteFactory.getInstance().nextWebsiteSourcesToVisits();
         for (String hostname : soruces.keySet()) {
 
             BaseSource source = soruces.get(hostname);
-            WebSiteFactory.getInstance().updateLastVisit(hostname, source);
+            WebSiteFactory.getInstance().updateSourceLastVisit(hostname, source);
 
 
         }
