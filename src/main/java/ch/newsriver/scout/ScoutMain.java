@@ -62,14 +62,15 @@ public class ScoutMain extends MainWithPoolExecutorOptions {
             //Note: we allocate 1/3 of threads to the the source scout since
             //the html-seed queue needs more resources to follow
 
-            scoutSources = new ScoutSources(this.getPoolSize() / 3 + 1, this.getBatchSize() / 3 + 1, this.getQueueSize() / 3 + 1);
+            scoutSources = new ScoutSources(this.getPoolSize() / 3 / 2 + 1, this.getBatchSize() / 3 / 2 + 1, this.getQueueSize() / 3 / 2 + 1);
             new Thread(scoutSources).start();
+
+            scoutWebSites = new ScoutWebsites(this.getPoolSize() / 3 / 2 + 1, this.getBatchSize() / 3 / 2 + 1, this.getQueueSize() / 3 / 2 + 1);
+            new Thread(scoutWebSites).start();
 
             scoutHTMLs = new ScoutHTMLs(this.getPoolSize() / 3 * 2 + 1, this.getBatchSize() / 3 * 2 + 1, this.getQueueSize() / 3 * 2 + 1);
             new Thread(scoutHTMLs).start();
 
-            scoutWebSites = new ScoutWebsites(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
-            new Thread(scoutWebSites).start();
 
         } catch (Exception e) {
             logger.fatal("Unable to initialize scoutSources", e);
