@@ -89,17 +89,18 @@ public class URLResolver {
         try {
             URL = resolveUrl(rawURL, false, null);
         } catch (MalformedURLException ex) {
-            logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
+            logger.warn("Unable to resolve url.", ex);
         } catch (URISyntaxException ex) {
-            logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
+            logger.warn("Unable to resolve url.", ex);
         } catch (IOException ex) {
-            logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
+            logger.warn("Unable to resolve url.", ex);
         } catch (IllegalArgumentException ex) {
-            logger.warn("Unable to clean stand alone url. Article=" + rawURL + " " + ex.getMessage());
+            logger.warn("Unable to resolve url.", ex);
+        } catch (Exception ex){
+            logger.warn("Unable to resolve url.", ex);
         }
         if (URL == null) {
-            logger.warn("Unable to clean stand alone url. Artile=" + rawURL);
-            throw new InvalidURLException("Invalid Article url:" + rawURL);
+            throw new InvalidURLException("Invalid url:" + rawURL);
         }
 
         String host = null;
@@ -108,17 +109,17 @@ public class URLResolver {
             uri = new URI(URL);
             host = uri.getHost();
         } catch (URISyntaxException ex) {
-            logger.warn("Unable to exctract host from URL", ex);
+            logger.warn("Unable to extract host from URL", ex);
         }
 
         if (host == null) {
-            logger.warn("Unable to extract host from url. Artile=" + rawURL);
-            throw new InvalidURLException("Invalid Article url:" + rawURL);
+            logger.warn("Unable to extract host from url.");
+            throw new InvalidURLException("Invalid url:" + rawURL);
         }
 
         if (bannedHosts.contains(host)) {
-            logger.warn("Unable to import Article, its domain is banned. Artile=" + rawURL);
-            throw new InvalidURLException("Banned Article url:" + rawURL);
+            logger.warn("Unable to import Article, its domain is banned.");
+            throw new InvalidURLException("Banned url:" + rawURL);
         }
 
         return URL;
@@ -263,23 +264,23 @@ public class URLResolver {
                     }
                 }
             } catch (UnknownHostException ex) {
-                logger.info("Unable to resolve URL: " + url, ex);
+                logger.info("Unable to resolve URL", ex);
                 throw ex;
             } catch (SSLProtocolException ex) {
-                logger.info("Unable to resolve URL: " + url, ex);
+                logger.info("Unable to resolve URL", ex);
                 throw ex;
             } catch (SocketTimeoutException ex) {
-                logger.info("Unable to resolve URL: " + url, ex);
+                logger.info("Unable to resolve URL", ex);
                 throw ex;
             } catch (ConnectTimeoutException ex) {
-                logger.info("Unable to resolve URL: " + url, ex);
+                logger.info("Unable to resolve URL", ex);
                 throw ex;
             } catch (SocketException ex) {
-                logger.info("Unable to resolve URL: " + url, ex);
+                logger.info("Unable to resolve URL", ex);
                 throw ex;
             } catch (Exception ex) {
                 //TODO: eventually try to improve this catch all and add specific errors catch
-                logger.fatal("Unable to resolve URL: " + url, ex);
+                logger.fatal("Unable to resolve URL", ex);
                 throw ex;
             }
 

@@ -1,3 +1,5 @@
+package ch.newsriver.sources.newscron;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
