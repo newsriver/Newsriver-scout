@@ -177,7 +177,7 @@ public class FeedFetcher {
         try {
             return FeedFetcher.fetchUrls(feedURL, MAX_ARTICLES_PER_FETCH);
         } catch (Throwable e) {
-            logger.error(e);
+            logger.error("Unable to fetch URLs from feed",e);
             return null;
         }
     }
