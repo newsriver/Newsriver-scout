@@ -6,7 +6,6 @@ import ch.newsriver.data.website.source.SourceFactory;
 import ch.newsriver.util.url.URLUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.lucene.queryparser.xml.FilterBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
@@ -39,7 +38,6 @@ public class AddSourceToWebsites {
         try {
             QueryBuilder qb = QueryBuilders.queryStringQuery("type:FeedSource");
 
-            FilterBuilder filter = null;
 
             SearchRequestBuilder searchRequestBuilder = client.prepareSearch()
                     .setIndices("newsriver-source")
