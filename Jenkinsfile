@@ -3,7 +3,7 @@
 def marathonAppId = '/newsriver/newsriver-scout'
 def projectName = 'newsriver-scout'
 def dockerRegistry = 'docker-registry-v2.newsriver.io:5000'
-def marathonURL = 'http://leader.services.newsriver.io/service/marathon'
+def marathonURL = 'http://leader.mesos:8080/'
 
 node {
 
