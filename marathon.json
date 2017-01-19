@@ -9,7 +9,7 @@
     "type": "DOCKER",
     "volumes": [],
     "docker": {
-      "image": "docker-registry.newsriver.io:5000/newsriver-scout:latest",
+      "image": "docker-registry-v2.newsriver.io:5000/newsriver-scout:latest",
       "network": "HOST",
       "privileged": false,
       "parameters": [],
