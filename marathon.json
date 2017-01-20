@@ -2,7 +2,7 @@
   "id": "/newsriver/newsriver-scout",
   "cmd": null,
   "cpus": 0.5,
-  "mem": 1536,
+  "mem": 768,
   "disk": 0,
   "instances": 1,
   "container": {
@@ -32,5 +32,8 @@
     "--threads=50",
     "--batch=50",
     "--queue=100"
+  ],
+  "acceptedResourceRoles": [
+    "slave_public"
   ]
 }
