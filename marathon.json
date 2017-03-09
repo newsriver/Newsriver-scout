@@ -1,7 +1,7 @@
 {
   "id": "/newsriver/newsriver-scout",
   "cmd": null,
-  "cpus": 0.5,
+  "cpus": 0.25,
   "mem": 1024,
   "disk": 0,
   "instances": 2,
