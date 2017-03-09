@@ -1,10 +1,10 @@
 {
   "id": "/newsriver/newsriver-scout",
   "cmd": null,
-  "cpus": 0.75,
+  "cpus": 0.5,
   "mem": 1024,
   "disk": 0,
-  "instances": 1,
+  "instances": 2,
   "container": {
     "type": "DOCKER",
     "volumes": [],
