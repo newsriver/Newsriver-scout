@@ -2,7 +2,7 @@
   "id": "/newsriver/newsriver-scout",
   "cmd": null,
   "cpus": 0.25,
-  "mem": 1024,
+  "mem": 2024,
   "disk": 0,
   "instances": 2,
   "container": {
