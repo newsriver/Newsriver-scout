@@ -233,6 +233,13 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                             linkURL.setDiscoverDate(dateFormatter.format(new Date()));
                             linkURL.setRawURL(urlStr);
 
+                            if(html.getReferral() instanceof SeedURL ){
+                                linkURL.setRegion(((SeedURL) html.getReferral()).getRegion());
+                                linkURL.setCountry(((SeedURL) html.getReferral()).getCountryName());
+                                linkURL.setCategory(((SeedURL) html.getReferral()).getCategory());
+                            }
+
+
                             if (!updatedExistingArticle(linkURL)) {
 
                                 try {
