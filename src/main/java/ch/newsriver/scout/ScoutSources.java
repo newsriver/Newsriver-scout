@@ -140,7 +140,7 @@ public class ScoutSources extends BatchInterruptibleWithinExecutorPool implement
                             SeedURL seedUR = new SeedURL();
                             seedUR.setRawURL(source.getUrl());
                             seedUR.setUrl(source.getUrl());
-                            seedUR.setDepth(((URLSeedSource) source).getDepth());
+                            seedUR.setDepth(0); //seed urls from sources have always depth 0
 
 
                             try {

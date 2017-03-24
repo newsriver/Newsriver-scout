@@ -148,8 +148,8 @@ public class ScoutWebsites extends BatchInterruptibleWithinExecutorPool implemen
                             seedUR.setCountryName(((URLSeedSource) source).getCountryName());
                             seedUR.setLanguageCode(((URLSeedSource) source).getLanguageCode());
                             seedUR.setRegion(((URLSeedSource) source).getRegion());
-                            seedUR.setDepth(0); //starting at depth 0
-
+                            seedUR.setDepth(0); //seed urls from sources have always depth 0
+                            
                             try {
                                 String json = mapper.writeValueAsString(seedUR);
                                 producer.send(new ProducerRecord<String, String>("raw-urls", source.getUrl(), json));
