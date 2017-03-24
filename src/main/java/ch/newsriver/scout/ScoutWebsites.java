@@ -133,17 +133,22 @@ public class ScoutWebsites extends BatchInterruptibleWithinExecutorPool implemen
                         } else if (source instanceof URLSeedSource) {
 
 
-                            //TODO: need to implement remove source from website
+                            //TODO: implement remove source in WebSiteFactory
                             /*if (!((URLSeedSource) source).isPermanent()) {
-                                SourceFactory.getInstance().removeSource(source);
+                                WebSiteFactory.getInstance().removeSource(source);
                             }*/
+
 
                             SeedURL seedUR = new SeedURL();
                             seedUR.setRawURL(source.getUrl());
                             seedUR.setUrl(source.getUrl());
-                            seedUR.setDepth(((URLSeedSource) source).getDepth());
                             seedUR.setExpectedPath(((URLSeedSource) source).getExpectedPath());
-
+                            seedUR.setCategory(((URLSeedSource) source).getCategory());
+                            seedUR.setCountryCode(((URLSeedSource) source).getCountryCode());
+                            seedUR.setCountryName(((URLSeedSource) source).getCountryName());
+                            seedUR.setLanguageCode(((URLSeedSource) source).getLanguageCode());
+                            seedUR.setRegion(((URLSeedSource) source).getRegion());
+                            seedUR.setDepth(0); //starting at depth 0
 
                             try {
                                 String json = mapper.writeValueAsString(seedUR);
