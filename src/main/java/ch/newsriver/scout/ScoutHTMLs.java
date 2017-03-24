@@ -5,6 +5,7 @@ import ch.newsriver.data.content.Article;
 import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.html.AjaxHTML;
 import ch.newsriver.data.html.HTML;
+import ch.newsriver.data.url.BaseURL;
 import ch.newsriver.data.url.LinkURL;
 import ch.newsriver.data.url.SeedURL;
 import ch.newsriver.executable.Main;
@@ -39,7 +40,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
 
 /**
  * Created by eliapalme on 10/03/16.
@@ -129,9 +134,12 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                             return null;
                         }
 
-                        URI referral = null;
+                        final BaseURL referral = html.getReferral();
+
+                        //The seedHTML url now becomes the referral of all links discovered in the page
+                        URI referralURL = null;
                         try {
-                            referral = new URI(html.getReferral().getReferralURL());
+                            referralURL = new URI(referral.getUrl());
                         } catch (Exception e) {
                             logger.error("Unvalid SeedURL", e);
                             return null;
@@ -143,6 +151,7 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
 
                             return null;
                         }
+
 
                         Document doc = Jsoup.parse(html.getRawHTML(), html.getUrl());
                         Elements links = doc.select("a[href]");
@@ -184,10 +193,20 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                             }
 
                             //Skip url that are not the same host as the referring URL
-                            if (!url.getHost().equalsIgnoreCase(referral.getHost())) {
+                            if (!url.getHost().equalsIgnoreCase(referralURL.getHost())) {
                                 continue;
                             }
 
+
+                            //skip if url path does not start with expected path
+                            if (referral != null && referral instanceof SeedURL) {
+                                SeedURL seedURLReferral = (SeedURL) referral;
+                                if (seedURLReferral.getExpectedPath() != null && !seedURLReferral.getExpectedPath().isEmpty()) {
+                                    if (!url.getPath().toLowerCase().startsWith(seedURLReferral.getExpectedPath().toLowerCase())) {
+                                        continue;
+                                    }
+                                }
+                            }
 
                             String resolvedURL = ResolvedURLs.getInstance().getResolved(urlStr);
                             if (resolvedURL == null) {
@@ -224,6 +243,8 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                                 continue;
                             }
 
+                            //TODO: eventually test the expectedPath also after the URL resolving, redirects may change that
+
                             //New unknow link found send it for article extraction
 
                             //TODO: run classifier to establish if HTML contains and article
@@ -246,18 +267,13 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                             }
 
                         }
-
-
                         return null;
                     }, this)
                             .exceptionally(throwable -> {
                                 logger.error("HTMLScout unrecoverable error.", throwable);
                                 return null;
                             });
-
                 }
-
-
             } catch (InterruptedException ex) {
                 logger.warn("ScoutHTML job interrupted", ex);
                 run = false;

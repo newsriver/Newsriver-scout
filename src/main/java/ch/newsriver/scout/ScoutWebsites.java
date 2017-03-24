@@ -6,7 +6,6 @@ import ch.newsriver.data.url.SourceRSSURL;
 import ch.newsriver.data.website.WebSiteFactory;
 import ch.newsriver.data.website.source.BaseSource;
 import ch.newsriver.data.website.source.FeedSource;
-import ch.newsriver.data.website.source.SourceFactory;
 import ch.newsriver.data.website.source.URLSeedSource;
 import ch.newsriver.executable.Main;
 import ch.newsriver.executable.poolExecution.BatchInterruptibleWithinExecutorPool;
@@ -134,15 +133,16 @@ public class ScoutWebsites extends BatchInterruptibleWithinExecutorPool implemen
                         } else if (source instanceof URLSeedSource) {
 
 
-                            if (!((URLSeedSource) source).isPermanent()) {
+                            //TODO: need to implement remove source from website
+                            /*if (!((URLSeedSource) source).isPermanent()) {
                                 SourceFactory.getInstance().removeSource(source);
-                            }
+                            }*/
 
                             SeedURL seedUR = new SeedURL();
                             seedUR.setRawURL(source.getUrl());
                             seedUR.setUrl(source.getUrl());
-                            seedUR.setReferralURL(((URLSeedSource) source).getReferralURL());
                             seedUR.setDepth(((URLSeedSource) source).getDepth());
+                            seedUR.setExpectedPath(((URLSeedSource) source).getExpectedPath());
 
 
                             try {
