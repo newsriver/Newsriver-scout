@@ -15,7 +15,7 @@ node {
 
     stage 'set-up project'
     writeFile file: 'settings.gradle', text: '''rootProject.name = \'''' + projectName + '''\' \ninclude \'Newsriver-lib\''''
-
+    sh 'gradle build --refresh-dependencies'
     stage 'compile'
     sh 'gradle compileJava'
 
