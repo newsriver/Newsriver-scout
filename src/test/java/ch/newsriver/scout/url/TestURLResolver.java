@@ -3,6 +3,7 @@ package ch.newsriver.scout.url;
 import ch.newsriver.util.http.HttpClientPool;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -35,13 +36,13 @@ public class TestURLResolver {
             If one day we implement a fix, hopfully this test will not fail. Also not that if netcetera will correctly configure thier servers in the future this test
             will fail and shuld be removed.
      */
+    @Ignore //Unfortunatelly netcetera has updated the SSL cert and this test no longer fails
     @Test(expected = URLResolver.InvalidURLException.class)
     public void testUnrecognized_name() throws Exception {
 
         String url = "https://www.netcetera.com/home.html";
 
         resolver.resolveURL(url);
-
 
     }
 
