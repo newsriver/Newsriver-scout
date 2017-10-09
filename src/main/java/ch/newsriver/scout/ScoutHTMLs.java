@@ -1,6 +1,5 @@
 package ch.newsriver.scout;
 
-import ch.newsriver.dao.ElasticsearchUtil;
 import ch.newsriver.data.content.Article;
 import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.html.AjaxHTML;
@@ -25,7 +24,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.client.Client;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -254,7 +252,7 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                             linkURL.setDiscoverDate(dateFormatter.format(new Date()));
                             linkURL.setRawURL(urlStr);
 
-                            if(html.getReferral() instanceof SeedURL ){
+                            if (html.getReferral() instanceof SeedURL) {
                                 linkURL.setRegion(((SeedURL) html.getReferral()).getRegion());
                                 linkURL.setCountry(((SeedURL) html.getReferral()).getCountryName());
                                 linkURL.setCategory(((SeedURL) html.getReferral()).getCategory());
@@ -294,15 +292,13 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
 
     private boolean updatedExistingArticle(LinkURL linkURL) {
 
-        Client client = null;
-        client = ElasticsearchUtil.getInstance().getClient();
 
         String urlHash = "";
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-512");
             byte[] hash = digest.digest(linkURL.getUrl().getBytes(StandardCharsets.UTF_8));
             urlHash = org.apache.commons.codec.binary.Base64.encodeBase64URLSafeString(hash);
-
+            
             Article article = ArticleFactory.getInstance().getArticle(urlHash);
 
             if (article != null) {
