@@ -4,10 +4,12 @@
   "cpus": 0.25,
   "mem": 2024,
   "disk": 0,
-  "instances": 2,
-  "fetch": [{
-    "uri": "file:///etc/docker/docker-grc-auth.tar.gz"
-  }],
+  "instances": 3,
+  "fetch": [
+    {
+      "uri": "file:///etc/docker/docker-grc-auth.tar.gz"
+    }
+  ],
   "container": {
     "type": "DOCKER",
     "volumes": [],
