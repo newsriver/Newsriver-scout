@@ -139,7 +139,6 @@ public class ScoutWebsites extends BatchInterruptibleWithinExecutorPool implemen
                                 WebSiteFactory.getInstance().removeSource(source);
                             }*/
 
-
                             SeedURL seedUR = new SeedURL();
                             seedUR.setRawURL(source.getUrl());
                             seedUR.setUrl(source.getUrl());
@@ -150,6 +149,9 @@ public class ScoutWebsites extends BatchInterruptibleWithinExecutorPool implemen
                             seedUR.setLanguageCode(((URLSeedSource) source).getLanguageCode());
                             seedUR.setRegion(((URLSeedSource) source).getRegion());
                             seedUR.setDepth(0); //seed urls from sources have always depth 0
+
+                            metrics.logMetric("submitted seedURL", seedUR);
+
 
                             try {
                                 String json = mapper.writeValueAsString(seedUR);

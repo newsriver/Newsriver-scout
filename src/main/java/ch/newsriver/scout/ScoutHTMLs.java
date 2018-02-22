@@ -143,6 +143,8 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
                             return null;
                         }
 
+                        metrics.logMetric("processing seedHTML", referral);
+
 
                         //we only scan links of the index seed url
                         if (((SeedURL) html.getReferral()).getDepth() != 0) {
@@ -298,7 +300,7 @@ public class ScoutHTMLs extends BatchInterruptibleWithinExecutorPool implements 
             MessageDigest digest = MessageDigest.getInstance("SHA-512");
             byte[] hash = digest.digest(linkURL.getUrl().getBytes(StandardCharsets.UTF_8));
             urlHash = org.apache.commons.codec.binary.Base64.encodeBase64URLSafeString(hash);
-            
+
             Article article = ArticleFactory.getInstance().getArticle(urlHash);
 
             if (article != null) {
