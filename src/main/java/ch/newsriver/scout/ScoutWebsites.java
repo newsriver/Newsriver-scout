@@ -155,7 +155,7 @@ public class ScoutWebsites extends BatchInterruptibleWithinExecutorPool implemen
 
                             try {
                                 String json = mapper.writeValueAsString(seedUR);
-                                producer.send(new ProducerRecord<String, String>("raw-urls", source.getUrl(), json));
+                                producer.send(new ProducerRecord<String, String>("seed-urls", source.getUrl(), json));
                             } catch (Exception e) {
                                 logger.fatal("Unable to serialize seedURL result", e);
                             }
